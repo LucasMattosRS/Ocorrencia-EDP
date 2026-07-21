@@ -1,219 +1,382 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#1a1a2e">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="description" content="Automação de preenchimento de ocorrências SGS - EDP">
-  
-  <title>⚡ Nova Ocorrência - SGS EDP</title>
-  
-  <!-- PWA -->
-  <link rel="manifest" href="manifest.json">
-  <link rel="apple-touch-icon" href="icon-192.png">
-  
-  <!-- Estilos -->
-  <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-  <div class="container">
-    
-    <!-- ========== TELA 1: FORMULÁRIO ========== -->
-    <div id="screen-form" class="screen active">
-      
-      <!-- Header -->
-      <header class="header">
-        <span class="logo-icon">⚡</span>
-        <h1>Nova Ocorrência</h1>
-        <p>SGS - EDP SP | Preenchimento Automático</p>
-      </header>
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <meta name="theme-color" content="#1a1a2e" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <meta
+      name="description"
+      content="Automação de preenchimento de ocorrências SGS - EDP"
+    />
 
-      <!-- Card: Campos do Usuário -->
-      <div class="card">
-        <div class="card-title">📝 Informações da Ocorrência</div>
-        
-        <form id="form-ocorrencia" onsubmit="return false;">
-          <div class="field">
-            <label for="descricao">
-              Descrição <span class="required">*</span>
-            </label>
-            <textarea 
-              id="descricao" 
-              name="descricao"
-              placeholder="Descreva detalhadamente o que aconteceu..."
-              required
-              autocomplete="off"
-            ></textarea>
+    <title>⚡ Nova Ocorrência - SGS EDP</title>
+
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json" />
+    <link rel="apple-touch-icon" href="icon-192.png" />
+
+    <!-- Estilos -->
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="container">
+      <!-- ========== TELA 1: FORMULÁRIO ========== -->
+      <div id="screen-form" class="screen active">
+        <!-- Header -->
+        <header class="header">
+          <span class="logo-icon">⚡</span>
+          <h1>Ocorrencia-EDP</h1>
+          <p>SGS - EDP SP | Preenchimento Automático</p>
+        </header>
+
+        <!-- Card: Campos do Usuário -->
+        <div class="card">
+          <div class="card-title">📝 Informações da Ocorrência</div>
+
+          <form id="form-ocorrencia" onsubmit="return false;">
+            <div class="field">
+              <label for="descricao">
+                Descrição <span class="required">*</span>
+              </label>
+              <textarea
+                id="descricao"
+                name="descricao"
+                placeholder="Descreva detalhadamente o que aconteceu..."
+                required
+                autocomplete="off"
+              ></textarea>
+            </div>
+
+            <div class="field">
+              <label for="cpf"> CPF <span class="required">*</span> </label>
+              <input
+                type="text"
+                id="cpf"
+                name="cpf"
+                placeholder="Digite o CPF da pessoa"
+                required
+                autocomplete="off"
+              />
+            </div>
+
+            <div class="field">
+              <label for="endereco">
+                Endereço <span class="required">*</span>
+              </label>
+              <input
+                type="text"
+                id="endereco"
+                name="endereco"
+                placeholder="Rua, número, bairro, cidade..."
+                required
+                autocomplete="off"
+              />
+              <button
+                type="button"
+                id="btn-localizacao"
+                class="btn btn-secondary"
+                style="margin-top: 8px"
+              >
+                📍 Usar Localização Atual
+              </button>
+            </div>
+
+            <div class="field">
+              <label
+                >Alguém poderia ter se machucado?
+                <span class="required">*</span></label
+              >
+              <div class="radio-list">
+                <label class="radio-option">
+                  <input type="radio" name="machucado" value="Sim" />
+                  <span>Sim</span>
+                </label>
+                <label class="radio-option">
+                  <input type="radio" name="machucado" value="Não" checked />
+                  <span>Não</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="tipo-evento"
+                >Tipo de Evento <span class="required">*</span></label
+              >
+              <select id="tipo-evento" name="tipo-evento">
+                <option value="">Selecione</option>
+                <option>Condição Insegura</option>
+                <option>Comportamento Inseguro</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="categoria-tipologia"
+                >Categoria de Tipologia da Ocorrência
+                <span class="required">*</span></label
+              >
+              <select id="categoria-tipologia" name="categoria-tipologia">
+                <option value="">Selecione</option>
+                <option>Acidentes</option>
+                <option>Biológicos</option>
+                <option>Ergonômico</option>
+                <option>Físico</option>
+                <option>Meio Ambiente</option>
+                <option>Químicos</option>
+                <option>Stop Work</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="tipo-tipologia"
+                >Tipo de Tipologia da Ocorrência
+                <span class="required">*</span></label
+              >
+              <select id="tipo-tipologia" name="tipo-tipologia">
+                <option value="">Selecione</option>
+                <option>Ataque de animais</option>
+                <option>Armazenamento inadequado</option>
+                <option>Arranjo Físico inadequado</option>
+                <option>Bloqueio de energia</option>
+                <option>Desvios de Preenchimento (AST/PT/APR/CheckList)</option>
+                <option>Eletricidade</option>
+                <option>Espaço confinado</option>
+                <option>Falha em isolamento</option>
+                <option>Içamento e movimentação de carga</option>
+                <option>Iluminação inadequada</option>
+                <option>Máquinas e equipamentos</option>
+                <option>Organização e limpeza</option>
+                <option>Probabilidade de incêndio e explosão</option>
+                <option>Queda/Projeção de material</option>
+                <option>Queda em altura</option>
+                <option>Trabalho à quente</option>
+                <option>Uso inadequado de EPI's</option>
+                <option>Uso inadequado de ferramentas</option>
+                <option>PGR</option>
+                <option>PCMSO</option>
+                <option>Ruído</option>
+                <option>Calor</option>
+                <option>Frio</option>
+                <option>Pressões anormais</option>
+                <option>Controle rígido de produtividade</option>
+                <option>Esforço físico intenso</option>
+                <option>Monotonia e repetitividade</option>
+                <option>Trabalho em turno e noturno</option>
+                <option>Eletricidade</option>
+                <option>Química</option>
+              </select>
+            </div>
+          </form>
+        </div>
+
+        <!-- Card: Configurações Fixas -->
+        <div class="card">
+          <div class="card-title">⚙️ Dados Fixos (Automáticos)</div>
+
+          <div class="info-box">
+            <div class="info-row">
+              <span class="info-label">Tipo:</span>
+              <span class="info-value">Relato de Ocorrência</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Segmento:</span>
+              <span class="info-value">Networks</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Empresa EDP:</span>
+              <span class="info-value">EDP SP DISTRIB DE ENERGIA</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Tipo Empresa:</span>
+              <span class="info-value">Contratada</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Área:</span>
+              <span class="info-value">Prj e Construção SP</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Localidade:</span>
+              <span class="info-value">12 - Sede São José dos Campos</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Resolvido:</span>
+              <span class="info-value">Sim</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Gravidade:</span>
+              <span class="info-value">PG1-Baixo</span>
+            </div>
           </div>
-          
-          <div class="field">
-            <label for="endereco">
-              Endereço <span class="required">*</span>
-            </label>
-            <input 
-              type="text" 
-              id="endereco" 
-              name="endereco"
-              placeholder="Rua, número, bairro, cidade..."
-              required
-              autocomplete="off"
+        </div>
+
+        <!-- Botões -->
+        <button id="btn-gerar" class="btn btn-primary">
+          🚀 Gerar Link do SGS
+        </button>
+
+        <button id="btn-limpar" class="btn btn-secondary">
+          🧹 Limpar Formulário
+        </button>
+
+        <!-- Footer -->
+        <footer class="footer">
+          <p>EDP Ocorrência Automation v1.0</p>
+          <p style="margin-top: 4px; font-size: 0.7rem">
+            Preencha CPF, Descrição, Endereço e as opções manuais
+          </p>
+        </footer>
+      </div>
+
+      <!-- ========== TELA 2: RESULTADO ========== -->
+      <div id="screen-resultado" class="screen">
+        <div class="success-screen">
+          <div class="success-icon">✅</div>
+          <h2 class="success-title">Link Gerado!</h2>
+          <p class="success-text">
+            Os campos fixos foram configurados.<br />
+            Agora é só abrir o SGS e aplicar.
+          </p>
+        </div>
+
+        <!-- Resumo -->
+        <div class="card">
+          <div class="card-title">📋 Resumo da Ocorrência</div>
+          <div class="info-box">
+            <div class="info-row">
+              <span class="info-label">CPF:</span>
+              <span class="info-value" id="res-cpf">-</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Descrição:</span>
+              <span
+                class="info-value"
+                id="res-descricao"
+                style="word-break: break-word"
+                >-</span
+              >
+            </div>
+            <div class="info-row">
+              <span class="info-label">Endereço:</span>
+              <span
+                class="info-value"
+                id="res-endereco"
+                style="word-break: break-word"
+                >-</span
+              >
+            </div>
+            <div class="info-row">
+              <span class="info-label">Tipo de Evento:</span>
+              <span class="info-value" id="res-tipo-evento">-</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Machucado?</span>
+              <span class="info-value" id="res-machucado">-</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Confirmação -->
+        <div class="card confirmation-card">
+          <div class="card-title">🧾 Confirmação final</div>
+          <p class="confirm-text">
+            Revise os dados e escolha se deseja prosseguir com o envio no SGS.
+          </p>
+          <div class="confirmation-actions">
+            <button
+              id="btn-confirmar-sim"
+              class="btn btn-success"
+              type="button"
             >
-            <button type="button" id="btn-localizacao" class="btn btn-secondary" style="margin-top: 8px;">
-              📍 Usar Localização Atual
+              ✅ Sim, confirmar
+            </button>
+            <button
+              id="btn-confirmar-nao"
+              class="btn btn-secondary"
+              type="button"
+            >
+              ❌ Não, revisar
             </button>
           </div>
-        </form>
-      </div>
+        </div>
 
-      <!-- Card: Configurações Fixas -->
-      <div class="card">
-        <div class="card-title">⚙️ Dados Fixos (Automáticos)</div>
-        
-        <div class="info-box">
-          <div class="info-row">
-            <span class="info-label">Tipo:</span>
-            <span class="info-value">Relato de Ocorrência</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Segmento:</span>
-            <span class="info-value">Networks</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Empresa EDP:</span>
-            <span class="info-value">EDP SP DISTRIB DE ENERGIA</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Tipo Empresa:</span>
-            <span class="info-value">Contratada</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Área:</span>
-            <span class="info-value">Prj e Construção SP</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Localidade:</span>
-            <span class="info-value">12 - Sede São José dos Campos</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Resolvido:</span>
-            <span class="info-value">Sim</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Gravidade:</span>
-            <span class="info-value">PG1-Baixo</span>
+        <!-- Ações -->
+        <button id="btn-abrir-sgs" class="btn btn-primary">
+          🔗 Informar no SGS
+        </button>
+
+        <button id="btn-imprimir" class="btn btn-secondary">
+          🖨️ Imprimir confirmação
+        </button>
+
+        <button id="btn-copiar" class="btn btn-secondary">
+          📋 Copiar Link/Código
+        </button>
+
+        <button id="btn-compartilhar" class="btn btn-whatsapp">
+          📱 Compartilhar no WhatsApp
+        </button>
+
+        <!-- Tutorial -->
+        <div class="card" style="margin-top: 20px">
+          <div class="card-title">📱 Como usar no celular</div>
+
+          <div class="steps">
+            <div class="step">
+              <div class="step-number">1</div>
+              <div class="step-text">
+                Toque em <strong>"Informar no SGS"</strong> ou cole o link
+                copiado no navegador
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-number">2</div>
+              <div class="step-text">
+                Faça login no SGS se necessário (use o navegador Chrome ou
+                Safari)
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-number">3</div>
+              <div class="step-text">
+                <strong>Cole o código na barra de endereço</strong> e pressione
+                Enter. Os campos serão preenchidos automaticamente!
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-number">4</div>
+              <div class="step-text">
+                Verifique os dados, imprima a confirmação se necessário e clique
+                em <strong>INFORMAR</strong> para enviar
+              </div>
+            </div>
           </div>
         </div>
+
+        <div class="divider"></div>
+
+        <button id="btn-voltar" class="btn btn-secondary">
+          ← Nova Ocorrência
+        </button>
+
+        <footer class="footer">
+          <p>EDP Ocorrência Automation v1.0</p>
+        </footer>
       </div>
 
-      <!-- Botões -->
-      <button id="btn-gerar" class="btn btn-primary">
-        🚀 Gerar Link do SGS
-      </button>
-      
-      <button id="btn-limpar" class="btn btn-secondary">
-        🧹 Limpar Formulário
-      </button>
-
-      <!-- Footer -->
-      <footer class="footer">
-        <p>EDP Ocorrência Automation v1.0</p>
-        <p style="margin-top: 4px; font-size: 0.7rem;">Preencha apenas Descrição e Endereço</p>
-      </footer>
+      <!-- Toast -->
+      <div id="toast" class="toast"></div>
     </div>
 
-    <!-- ========== TELA 2: RESULTADO ========== -->
-    <div id="screen-resultado" class="screen">
-      
-      <div class="success-screen">
-        <div class="success-icon">✅</div>
-        <h2 class="success-title">Link Gerado!</h2>
-        <p class="success-text">
-          Os campos fixos foram configurados.<br>
-          Agora é só abrir o SGS e aplicar.
-        </p>
-      </div>
-
-      <!-- Resumo -->
-      <div class="card">
-        <div class="card-title">📋 Resumo da Ocorrência</div>
-        <div class="info-box">
-          <div class="info-row">
-            <span class="info-label">Descrição:</span>
-            <span class="info-value" id="res-descricao" style="word-break: break-word;">-</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Endereço:</span>
-            <span class="info-value" id="res-endereco" style="word-break: break-word;">-</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Ações -->
-      <button id="btn-abrir-sgs" class="btn btn-primary">
-        🔗 Abrir SGS + Copiar Código
-      </button>
-      
-      <button id="btn-copiar" class="btn btn-secondary">
-        📋 Copiar Link/Código
-      </button>
-      
-      <button id="btn-compartilhar" class="btn btn-whatsapp">
-        📱 Compartilhar no WhatsApp
-      </button>
-
-      <!-- Tutorial -->
-      <div class="card" style="margin-top: 20px;">
-        <div class="card-title">📱 Como usar no celular</div>
-        
-        <div class="steps">
-          <div class="step">
-            <div class="step-number">1</div>
-            <div class="step-text">
-              Toque em <strong>"Abrir SGS + Copiar Código"</strong> ou cole o link copiado no navegador
-            </div>
-          </div>
-          <div class="step">
-            <div class="step-number">2</div>
-            <div class="step-text">
-              Faça login no SGS se necessário (use o navegador Chrome ou Safari)
-            </div>
-          </div>
-          <div class="step">
-            <div class="step-number">3</div>
-            <div class="step-text">
-              <strong>Cole o código na barra de endereço</strong> e pressione Enter. Os campos serão preenchidos automaticamente!
-            </div>
-          </div>
-          <div class="step">
-            <div class="step-number">4</div>
-            <div class="step-text">
-              Verifique os dados e clique em <strong>INFORMAR</strong> para enviar
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="divider"></div>
-
-      <button id="btn-voltar" class="btn btn-secondary">
-        ← Nova Ocorrência
-      </button>
-
-      <footer class="footer">
-        <p>EDP Ocorrência Automation v1.0</p>
-      </footer>
-    </div>
-
-    <!-- Toast -->
-    <div id="toast" class="toast"></div>
-
-  </div>
-
-  <!-- Scripts -->
-  <script src="config.js"></script>
-  <script src="bookmarklet.js"></script>
-  <script src="app.js"></script>
-</body>
+    <!-- Scripts -->
+    <script src="config.js"></script>
+    <script src="bookmarklet.js"></script>
+    <script src="app.js"></script>
+  </body>
 </html>

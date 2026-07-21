@@ -1,6 +1,6 @@
 {
-  "name": "EDP Ocorrência SGS",
-  "short_name": "EDP Ocorrência",
+  "name": "Ocorrencia-EDP",
+  "short_name": "Ocorrencia-EDP",
   "description": "Automação de preenchimento de ocorrências SGS - EDP",
   "start_url": "/",
   "display": "standalone",
