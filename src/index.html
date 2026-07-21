@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#1a1a2e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="description" content="Automação de preenchimento de ocorrências SGS - EDP">
+  
+  <title>⚡ Nova Ocorrência - SGS EDP</title>
+  
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  
+  <!-- Estilos -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    
+    <!-- ========== TELA 1: FORMULÁRIO ========== -->
+    <div id="screen-form" class="screen active">
+      
+      <!-- Header -->
+      <header class="header">
+        <span class="logo-icon">⚡</span>
+        <h1>Nova Ocorrência</h1>
+        <p>SGS - EDP SP | Preenchimento Automático</p>
+      </header>
+
+      <!-- Card: Campos do Usuário -->
+      <div class="card">
+        <div class="card-title">📝 Informações da Ocorrência</div>
+        
+        <form id="form-ocorrencia" onsubmit="return false;">
+          <div class="field">
+            <label for="descricao">
+              Descrição <span class="required">*</span>
+            </label>
+            <textarea 
+              id="descricao" 
+              name="descricao"
+              placeholder="Descreva detalhadamente o que aconteceu..."
+              required
+              autocomplete="off"
+            ></textarea>
+          </div>
+          
+          <div class="field">
+            <label for="endereco">
+              Endereço <span class="required">*</span>
+            </label>
+            <input 
+              type="text" 
+              id="endereco" 
+              name="endereco"
+              placeholder="Rua, número, bairro, cidade..."
+              required
+              autocomplete="off"
+            >
+            <button type="button" id="btn-localizacao" class="btn btn-secondary" style="margin-top: 8px;">
+              📍 Usar Localização Atual
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Card: Configurações Fixas -->
+      <div class="card">
+        <div class="card-title">⚙️ Dados Fixos (Automáticos)</div>
+        
+        <div class="info-box">
+          <div class="info-row">
+            <span class="info-label">Tipo:</span>
+            <span class="info-value">Relato de Ocorrência</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Segmento:</span>
+            <span class="info-value">Networks</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Empresa EDP:</span>
+            <span class="info-value">EDP SP DISTRIB DE ENERGIA</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Tipo Empresa:</span>
+            <span class="info-value">Contratada</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Área:</span>
+            <span class="info-value">Prj e Construção SP</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Localidade:</span>
+            <span class="info-value">12 - Sede São José dos Campos</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Resolvido:</span>
+            <span class="info-value">Sim</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Gravidade:</span>
+            <span class="info-value">PG1-Baixo</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Botões -->
+      <button id="btn-gerar" class="btn btn-primary">
+        🚀 Gerar Link do SGS
+      </button>
+      
+      <button id="btn-limpar" class="btn btn-secondary">
+        🧹 Limpar Formulário
+      </button>
+
+      <!-- Footer -->
+      <footer class="footer">
+        <p>EDP Ocorrência Automation v1.0</p>
+        <p style="margin-top: 4px; font-size: 0.7rem;">Preencha apenas Descrição e Endereço</p>
+      </footer>
+    </div>
+
+    <!-- ========== TELA 2: RESULTADO ========== -->
+    <div id="screen-resultado" class="screen">
+      
+      <div class="success-screen">
+        <div class="success-icon">✅</div>
+        <h2 class="success-title">Link Gerado!</h2>
+        <p class="success-text">
+          Os campos fixos foram configurados.<br>
+          Agora é só abrir o SGS e aplicar.
+        </p>
+      </div>
+
+      <!-- Resumo -->
+      <div class="card">
+        <div class="card-title">📋 Resumo da Ocorrência</div>
+        <div class="info-box">
+          <div class="info-row">
+            <span class="info-label">Descrição:</span>
+            <span class="info-value" id="res-descricao" style="word-break: break-word;">-</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Endereço:</span>
+            <span class="info-value" id="res-endereco" style="word-break: break-word;">-</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ações -->
+      <button id="btn-abrir-sgs" class="btn btn-primary">
+        🔗 Abrir SGS + Copiar Código
+      </button>
+      
+      <button id="btn-copiar" class="btn btn-secondary">
+        📋 Copiar Link/Código
+      </button>
+      
+      <button id="btn-compartilhar" class="btn btn-whatsapp">
+        📱 Compartilhar no WhatsApp
+      </button>
+
+      <!-- Tutorial -->
+      <div class="card" style="margin-top: 20px;">
+        <div class="card-title">📱 Como usar no celular</div>
+        
+        <div class="steps">
+          <div class="step">
+            <div class="step-number">1</div>
+            <div class="step-text">
+              Toque em <strong>"Abrir SGS + Copiar Código"</strong> ou cole o link copiado no navegador
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-number">2</div>
+            <div class="step-text">
+              Faça login no SGS se necessário (use o navegador Chrome ou Safari)
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-number">3</div>
+            <div class="step-text">
+              <strong>Cole o código na barra de endereço</strong> e pressione Enter. Os campos serão preenchidos automaticamente!
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-number">4</div>
+            <div class="step-text">
+              Verifique os dados e clique em <strong>INFORMAR</strong> para enviar
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <button id="btn-voltar" class="btn btn-secondary">
+        ← Nova Ocorrência
+      </button>
+
+      <footer class="footer">
+        <p>EDP Ocorrência Automation v1.0</p>
+      </footer>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="toast"></div>
+
+  </div>
+
+  <!-- Scripts -->
+  <script src="config.js"></script>
+  <script src="bookmarklet.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
