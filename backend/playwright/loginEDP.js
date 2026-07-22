@@ -2,7 +2,12 @@ const { chromium } = require("playwright");
 
 async function loginEDP(matricula, senha){
     const browser = await chromium.launch({
-        headless: true
+        headless: true,
+        // Esta linha é crucial para ambientes Docker.
+        // Ela diz ao Playwright para usar o navegador Chromium que já vem na imagem,
+        // em vez de tentar baixar um novo.
+        channel: 'chrome',
+        args: ['--no-sandbox', '--disable-setuid-sandbox'] // Argumentos de segurança para rodar no Linux
     });
 
     const page = await browser.newPage();
@@ -30,10 +35,14 @@ async function loginEDP(matricula, senha){
         "#wt5_wtAction_wtLoginButton"
     );
 
-
-    await page.waitForTimeout(5000);
-
-
+    // Espera robusta: Aguarda pela URL mudar para a página principal ou por um elemento específico.
+    // O seletor 'a[href*="Logout.aspx"]' procura pelo link de Logout, um bom indicador de que o login foi bem-sucedido.
+    await page.waitForSelector('a[href*="Logout.aspx"]', { timeout: 15000 });
+    
+    // Verificação de falha de login
+    if (page.url().includes("Login.aspx")) {
+        throw new Error("Falha no login. Verifique matrícula e senha. A página de login foi recarregada.");
+    }
     console.log(
         "URL depois do login:",
         page.url()

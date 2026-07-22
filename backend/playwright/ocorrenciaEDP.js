@@ -1,4 +1,4 @@
-const SGS_CONFIG = require("../../src/config");
+const SGS_CONFIG = require("../config");
 
 // ============================================
 // Funções Auxiliares (inspiradas no bookmarklet.js)
@@ -99,27 +99,10 @@ async function preencherOcorrenciaEDP(page, ocorrencia) {
             console.log("Preencheu: Ações Imediatas");
         }
         
-        // 2. Preencher dropdowns com valores FIXOS do config
-        await page.selectOption(SGS_CONFIG.SELECTORS.tipoOcorrencia, { label: SGS_CONFIG.DROPDOWNS.tipoOcorrencia });
-        await page.selectOption(SGS_CONFIG.SELECTORS.segmento, { label: SGS_CONFIG.DROPDOWNS.segmento });
-        await page.selectOption(SGS_CONFIG.SELECTORS.empresaEDP, { label: SGS_CONFIG.DROPDOWNS.empresaEDP });
-        await page.selectOption(SGS_CONFIG.SELECTORS.tipoEmpresa, { label: SGS_CONFIG.DROPDOWNS.tipoEmpresa });
-        await page.selectOption(SGS_CONFIG.SELECTORS.areaObservador, { label: SGS_CONFIG.DROPDOWNS.areaObservador });
-        await page.selectOption(SGS_CONFIG.SELECTORS.localidade, { label: SGS_CONFIG.DROPDOWNS.localidade });
-        await page.selectOption(SGS_CONFIG.SELECTORS.resolvido, { label: SGS_CONFIG.DROPDOWNS.resolvido });
-        await page.selectOption(SGS_CONFIG.SELECTORS.potencialGravidade, { label: SGS_CONFIG.DROPDOWNS.potencialGravidade });
-        console.log("Preencheu todos os Dropdowns fixos.");
-
-        // 3. Marcar/Desmarcar Toggles (Checkboxes)
-        await page.setChecked(SGS_CONFIG.SELECTORS.toggleAnonimo, SGS_CONFIG.TOGGLES.relatoAnonimo);
-        await page.setChecked(SGS_CONFIG.SELECTORS.toggleNotificado, SGS_CONFIG.TOGGLES.desejaNotificado);
-        await page.setChecked(SGS_CONFIG.SELECTORS.toggleLocalExterno, SGS_CONFIG.TOGGLES.localExterno);
-        console.log("Configurou os Toggles (checkboxes).");
+        // Os passos 2 e 3 (preenchimento de valores fixos) foram removidos
+        // pois o formulário do frontend agora envia todos os dados necessários.
 
         console.log("Formulário preenchido com sucesso.");
-
-        // Deixando a página aberta por 5s para verificação final (pode ser removido em produção)
-        await page.waitForTimeout(5000);
 
     } catch (error) {
         console.error("Erro ao preencher o formulário de ocorrência:", error);

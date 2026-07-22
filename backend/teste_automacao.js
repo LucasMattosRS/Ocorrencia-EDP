@@ -1,14 +1,15 @@
 // Use 'node-fetch' para compatibilidade com versões mais antigas do Node.
 // Se você não tiver, instale com: npm install node-fetch
 const fetch = require('node-fetch');
+require('dotenv').config(); // Carrega as variáveis do arquivo .env
 
 // ==========================================================
 // DADOS DE TESTE - Altere aqui para testar
 // ==========================================================
 
-// IMPORTANTE: Preencha sua matrícula e senha para o teste funcionar
-const MATRICULA = "SUA_MATRICULA_AQUI";
-const SENHA = "SUA_SENHA_AQUI";
+// As credenciais agora são carregadas de forma segura do arquivo .env
+const MATRICULA = process.env.TEST_MATRICULA;
+const SENHA = process.env.TEST_SENHA;
 
 // Dados de exemplo para a ocorrência
 const DADOS_OCORRENCIA = {
@@ -33,8 +34,8 @@ const API_URL = 'http://localhost:3001/ocorrencia';
 async function executarTeste() {
   console.log("🚀 Iniciando teste de automação...");
 
-  if (MATRICULA === "SUA_MATRICULA_AQUI" || SENHA === "SUA_SENHA_AQUI") {
-    console.error("❌ ERRO: Por favor, preencha sua MATRICULA e SENHA no topo deste arquivo antes de rodar o teste.");
+  if (!MATRICULA || !SENHA || MATRICULA === "SUA_MATRICULA_AQUI") {
+    console.error("❌ ERRO: Por favor, configure as variáveis TEST_MATRICULA e TEST_SENHA no seu arquivo .env antes de rodar o teste.");
     return;
   }
 

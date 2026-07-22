@@ -9,6 +9,10 @@ class EDPOcorrenciaApp {
       matricula: "",
       senha: ""
     };
+    this.history = {
+      currentPage: 1,
+      totalPages: 1
+    };
     // Removido: generator e currentBookmarklet, não são mais necessários.
     this.init();
   }
@@ -20,6 +24,8 @@ class EDPOcorrenciaApp {
   }
 
   bindEvents() {
+    document.getElementById('config-toggle')?.addEventListener('click', () => this.toggleConfig());
+
     document.getElementById('btn-login')?.addEventListener('click', () => this.loginSistema());
 
     const form = document.getElementById('form-ocorrencia');
@@ -30,6 +36,13 @@ class EDPOcorrenciaApp {
     // O botão 'btn-gerar' agora dispara a automação diretamente.
     document.getElementById('btn-gerar')?.addEventListener('click', () => this.iniciarAutomacao());
 
+    document.getElementById('btn-historico')?.addEventListener('click', () => this.showHistory());
+    document.getElementById('btn-voltar-historico')?.addEventListener('click', () => this.voltar());
+    // Eventos para os novos filtros
+    document.getElementById('historico-search')?.addEventListener('input', () => this.handleFilterChange());
+    document.getElementById('historico-status-filter')?.addEventListener('change', () => this.handleFilterChange());
+    document.getElementById('pagination-prev')?.addEventListener('click', () => this.changePage(-1));
+    document.getElementById('pagination-next')?.addEventListener('click', () => this.changePage(1));
     // Listener de eventos para botões antigos (abrir-sgs, copiar) foram removidos.
     document.getElementById('btn-imprimir')?.addEventListener('click', () => this.imprimirConfirmacao());
     document.getElementById('btn-compartilhar')?.addEventListener('click', () => this.compartilharWhatsApp());
@@ -65,6 +78,11 @@ class EDPOcorrenciaApp {
 
     this.showScreen("screen-form");
     this.showToast("✅ Login informado. Preencha a ocorrência.", "success");
+  }
+
+  toggleConfig() {
+    const configDiv = document.getElementById('config-server');
+    configDiv.style.display = configDiv.style.display === 'none' ? 'block' : 'none';
   }
 
   // ============================================
@@ -104,8 +122,10 @@ class EDPOcorrenciaApp {
     this.showToast("⏳ Iniciando automação, por favor aguarde...", "info");
 
     try {
+      const serverUrl = document.getElementById('server-url').value.trim();
+
       // 4. Enviar para o backend
-      const response = await fetch('http://localhost:3001/ocorrencia', {
+      const response = await fetch(`${serverUrl}/ocorrencia`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -125,7 +145,6 @@ class EDPOcorrenciaApp {
 
       // 5. Lidar com o sucesso
       this.showToast("✅ Automação concluída com sucesso!", "success");
-      this.saveData({...ocorrencia, timestamp: new Date().toISOString()}); // Salva no histórico
       
       // Opcional: limpar formulário após sucesso
       // this.limpar();
@@ -149,6 +168,7 @@ class EDPOcorrenciaApp {
   
   imprimirConfirmacao() { window.print(); }
 
+
   compartilharWhatsApp() {
     const descricao = document.getElementById('descricao').value;
     const endereco = document.getElementById('endereco').value;
@@ -161,7 +181,7 @@ Endereço:
 ${endereco}
 
 Abrir SGS:
-${SGS_CONFIG.URL_BASE}`;
+https://sgs.edp.com.br/sgs/Ocorrencia/Informar`;
     const url = "https://wa.me/?text=" + encodeURIComponent(mensagem);
     window.open(url, "_blank");
   }
@@ -197,6 +217,100 @@ ${SGS_CONFIG.URL_BASE}`;
     document.getElementById("form-ocorrencia").reset();
     localStorage.removeItem("edp_ocorrencia_draft");
     this.showToast("🧹 Formulário limpo!", "success");
+  }
+
+  // ============================================
+  // HISTÓRICO
+  // ============================================
+
+  handleFilterChange() {
+    this.history.currentPage = 1; // Reseta para a primeira página ao filtrar
+    this.showHistory();
+  }
+
+  changePage(direction) {
+    const newPage = this.history.currentPage + direction;
+    if (newPage > 0 && newPage <= this.history.totalPages) {
+      this.history.currentPage = newPage;
+      this.showHistory();
+    }
+  }
+
+  async showHistory() {
+    this.showScreen('screen-historico');
+    const container = document.getElementById('historico-container');
+    container.innerHTML = '<p>Carregando histórico...</p>';
+
+    try {
+      // Coleta os valores dos filtros e da página atual
+      const searchTerm = document.getElementById('historico-search').value;
+      const statusFilter = document.getElementById('historico-status-filter').value;
+      const page = this.history.currentPage;
+
+      const serverUrl = document.getElementById('server-url').value.trim();
+      
+      // Constrói a URL com os parâmetros de busca
+      const url = new URL(`${serverUrl}/ocorrencia`);
+      url.searchParams.append('page', page);
+      if (searchTerm) url.searchParams.append('search', searchTerm);
+      if (statusFilter) url.searchParams.append('status', statusFilter);
+
+      const response = await fetch(url);
+      const result = await response.json();
+
+      if (!response.ok || !result.sucesso) {
+        throw new Error(result.erro || 'Não foi possível carregar o histórico.');
+      }
+
+      this.renderHistory(result.data);
+      this.updatePagination(result.pagination);
+
+    } catch (error) {
+      container.innerHTML = `<p style="color: var(--primary);">❌ ${error.message}</p>`;
+    }
+  }
+
+  renderHistory(data) {
+    const container = document.getElementById('historico-container');
+    if (!data || data.length === 0) {
+      container.innerHTML = '<p>Nenhuma ocorrência encontrada no histórico.</p>';
+      return;
+    }
+
+    const table = `
+      <table class="history-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Status</th>
+            <th>Descrição</th>
+            <th>Data</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${data.map(item => `
+            <tr>
+              <td>${item.id}</td>
+              <td><span class="status-badge status-${item.status.toLowerCase()}">${item.status}</span></td>
+              <td>${item.descricao.substring(0, 50)}${item.descricao.length > 50 ? '...' : ''}</td>
+              <td>${new Date(item.created_at).toLocaleString('pt-BR')}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+
+    container.innerHTML = table;
+  }
+
+  updatePagination(pagination) {
+    this.history.currentPage = pagination.page;
+    this.history.totalPages = pagination.totalPages;
+
+    document.getElementById('pagination-info').textContent = `Página ${pagination.page} de ${pagination.totalPages}`;
+    document.getElementById('pagination-prev').disabled = pagination.page <= 1;
+    document.getElementById('pagination-next').disabled = pagination.page >= pagination.totalPages;
+    document.getElementById('historico-pagination').style.display = pagination.totalPages > 0 ? 'flex' : 'none';
   }
 
   // ============================================
@@ -286,13 +400,6 @@ ${SGS_CONFIG.URL_BASE}`;
     } catch (e) {
       console.error("Erro ao carregar dados salvos:", e);
     }
-  }
-
-  saveData(data) {
-    let historico = JSON.parse(localStorage.getItem("edp_ocorrencia_history") || "[]");
-    historico.unshift(data);
-    if (historico.length > 50) historico.pop();
-    localStorage.setItem("edp_ocorrencia_history", JSON.stringify(historico));
   }
 
   // ============================================

@@ -44,6 +44,8 @@
           <h1>Ocorrencia-EDP</h1>
 
           <p>Login SGS EDP</p>
+
+          <div id="config-toggle" class="config-toggle-btn">⚙️</div>
         </header>
 
         <div class="card">
@@ -69,6 +71,19 @@
               placeholder="Digite sua senha"
               autocomplete="off"
             />
+          </div>
+
+          <div id="config-server" class="field" style="display: none">
+            <label> Endereço do Servidor de Automação </label>
+
+            <input
+              id="server-url"
+              type="text"
+              placeholder="https://seu-app.onrender.com"
+              value="https://edp-automacao.onrender.com"
+              autocomplete="off"
+            />
+            <small>Peça o IP para quem está rodando o servidor.</small>
           </div>
 
           <button id="btn-login" class="btn btn-primary" type="button">
@@ -340,8 +355,67 @@
           🚀 Gerar Link do SGS
         </button>
 
+        <button id="btn-historico" type="button" class="btn btn-secondary">
+          📖 Ver Histórico
+        </button>
+
         <button id="btn-limpar" class="btn btn-secondary">
           🧹 Limpar Formulário
+        </button>
+
+        <footer class="footer">
+          <p>EDP Ocorrência Automation v1.0</p>
+        </footer>
+      </div>
+
+      <!-- ================================= -->
+      <!-- TELA HISTÓRICO -->
+      <!-- ================================= -->
+      <div id="screen-historico" class="screen">
+        <header class="header">
+          <span class="logo-icon">📖</span>
+          <h1>Histórico de Ocorrências</h1>
+          <p>Últimas 50 ocorrências registradas</p>
+        </header>
+
+        <div class="card">
+          <div class="card-title">Registros do Sistema</div>
+          <div class="history-filters">
+            <div class="field">
+              <input
+                type="text"
+                id="historico-search"
+                placeholder="🔎 Buscar por descrição..."
+              />
+            </div>
+            <div class="field">
+              <select id="historico-status-filter">
+                <option value="">Todos os Status</option>
+                <option value="concluido">Concluído</option>
+                <option value="falha">Falha</option>
+                <option value="iniciado">Iniciado</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="historico-container" class="history-table-container">
+            <!-- O conteúdo será preenchido via JS -->
+            <p>Carregando histórico...</p>
+          </div>
+
+          <div id="historico-pagination" class="pagination-controls">
+            <button id="pagination-prev" class="btn btn-secondary">
+              Anterior
+            </button>
+            <span id="pagination-info">Página 1 de 1</span>
+            <button id="pagination-next" class="btn btn-secondary">
+              Próximo
+            </button>
+          </div>
+        </div>
+
+        <button id="btn-voltar-historico" class="btn btn-secondary">
+          ↩️ Voltar ao Formulário
         </button>
 
         <footer class="footer">
@@ -357,7 +431,6 @@
 
     <!-- SCRIPTS -->
 
-    <script src="config.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

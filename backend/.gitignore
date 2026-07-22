@@ -1,0 +1,14 @@
+# Arquivo para instruir o Git a ignorar certos arquivos e pastas.
+
+# Dependências do Node.js
+# Esta pasta é recriada com 'npm install' e não deve estar no controle de versão.
+node_modules
+
+# Arquivo de variáveis de ambiente
+# Contém segredos como senhas e strings de conexão de banco de dados.
+# NUNCA deve ser enviado para um repositório.
+.env
+
+# Arquivos de log e de depuração
+error_screenshot.png
+npm-debug.log
