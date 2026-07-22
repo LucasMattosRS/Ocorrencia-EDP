@@ -13,7 +13,9 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 
 # Instala as dependências do projeto.
-RUN npm install
+# O 'npm ci' é recomendado para produção pois usa o 'package-lock.json' para garantir instalações idênticas.
+# Ele é geralmente mais rápido e seguro que 'npm install'.
+RUN npm ci
 
 # Copia o restante do código da aplicação para o diretório de trabalho.
 COPY . .

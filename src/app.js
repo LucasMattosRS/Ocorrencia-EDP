@@ -156,7 +156,7 @@ class EDPOcorrenciaApp {
     } finally {
       // 7. Restaurar o botão
       btnGerar.disabled = false;
-      btnGerar.textContent = "Gerar Ocorrência";
+      btnGerar.textContent = "🚀 Gerar Ocorrência";
     }
   }
 
