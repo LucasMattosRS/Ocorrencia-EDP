@@ -99,8 +99,16 @@ async function preencherOcorrenciaEDP(page, ocorrencia) {
             console.log("Preencheu: Ações Imediatas");
         }
         
-        // Os passos 2 e 3 (preenchimento de valores fixos) foram removidos
-        // pois o formulário do frontend agora envia todos os dados necessários.
+        // 2. Preencher dropdowns com valores FIXOS para garantir consistência
+        await page.selectOption(SGS_CONFIG.SELECTORS.tipoOcorrencia, { label: 'Relato de Ocorrência' });
+        await page.selectOption(SGS_CONFIG.SELECTORS.segmento, { label: 'Networks' });
+        await page.selectOption(SGS_CONFIG.SELECTORS.empresaEDP, { label: 'EDP SP DISTRIB DE ENERGIA' });
+        await page.selectOption(SGS_CONFIG.SELECTORS.tipoEmpresa, { label: 'Contratada' });
+        await page.selectOption(SGS_CONFIG.SELECTORS.areaObservador, { label: 'Prj e Construção SP' });
+        await page.selectOption(SGS_CONFIG.SELECTORS.localidade, { label: '12 - Sede São José dos Campos' });
+        await page.selectOption(SGS_CONFIG.SELECTORS.resolvido, { label: 'Sim' });
+        await page.selectOption(SGS_CONFIG.SELECTORS.potencialGravidade, { label: 'PG1-Baixo' });
+        console.log("Preencheu todos os Dropdowns fixos.");
 
         console.log("Formulário preenchido com sucesso.");
 
