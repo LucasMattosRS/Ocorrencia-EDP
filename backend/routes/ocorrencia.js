@@ -1,12 +1,12 @@
 const express = require("express");
 const router = express.Router();
 
-const { loginEDP } = require("../playwright/loginEDP");
-const { preencherOcorrenciaEDP } = require("../playwright/ocorrenciaEDP");
+const { loginEDP } = require("../playwright/loginEDP"); // Caminho relativo dentro de /backend
+const { preencherOcorrenciaEDP } = require("../playwright/ocorrenciaEDP"); // Caminho relativo dentro de /backend
 const path = require('path');
 
 // Importa a configuração do banco de dados usando um caminho absoluto para garantir compatibilidade no deploy.
-const db = require(path.join(__dirname, '..', '..', 'db', 'pool'));
+const db = require(path.join(__dirname, '..', 'db', 'pool')); // Caminho simplificado para a pasta db
 
 // NOVA ROTA: Obter histórico de ocorrências
 router.get("/", async (req, res) => {

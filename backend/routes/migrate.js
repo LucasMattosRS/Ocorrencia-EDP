@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { Pool } = require('pg');
+const { Pool } = require('pg'); // A dependência 'pg' está no package.json da raiz
 require('dotenv').config();
 
 console.log('Starting database migration...');
