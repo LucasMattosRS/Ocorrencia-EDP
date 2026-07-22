@@ -10,8 +10,7 @@
     "start": "node server.js",
     "dev": "node --watch server.js",
     "test": "node teste_automacao.js",
-    "db:migrate": "node backend/db/migrate.js",
-    "postinstall": "npx playwright install --with-deps"
+    "db:migrate": "node backend/db/migrate.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

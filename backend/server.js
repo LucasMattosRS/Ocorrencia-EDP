@@ -16,19 +16,12 @@ app.use("/ocorrencia", ocorrenciaRouter);
 
 
 app.get("/", (req,res)=>{
-
     res.json({
         status:"API EDP funcionando"
     });
-
 });
-
 
 const port = process.env.PORT || 3001;
 app.listen(port,()=>{
-
-    console.log(
-        `Servidor rodando na porta ${port}`
-    );
-
+    console.log(`Servidor rodando na porta ${port}`);
 });
