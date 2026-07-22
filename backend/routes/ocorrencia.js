@@ -3,25 +3,27 @@ const router = express.Router();
 
 const { loginEDP } = require("../playwright/loginEDP");
 const { preencherOcorrenciaEDP } = require("../playwright/ocorrenciaEDP");
+const path = require('path');
 
-// Importa a configuração do banco de dados
-const db = require('../db/pool'); 
+// Importa a configuração do banco de dados usando um caminho absoluto para garantir compatibilidade no deploy.
+const db = require(path.join(__dirname, '..', '..', 'db', 'pool'));
 
 // NOVA ROTA: Obter histórico de ocorrências
 router.get("/", async (req, res) => {
-    const { search, status, page = 1, limit = 10 } = req.query;
+    // Converte os parâmetros para os tipos corretos, com valores padrão.
+    const { search, status } = req.query;
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 10;
+    const offset = (page - 1) * limit;
 
     try {
-        // --- Parte 1: Construir a query de busca e contagem ---
-        let countQuery = 'SELECT COUNT(*) FROM ocorrencias';
-        let dataQuery = 'SELECT id, matricula_autor, descricao, status, erro_mensagem, created_at FROM ocorrencias';
-        
         const conditions = [];
         const values = [];
         let paramIndex = 1;
 
         if (search) {
-            conditions.push(`descricao ILIKE $${paramIndex++}`);
+            conditions.push(`(descricao ILIKE $${paramIndex} OR CAST(id AS TEXT) ILIKE $${paramIndex})`);
+            paramIndex++;
             values.push(`%${search}%`);
         }
 
@@ -30,117 +32,119 @@ router.get("/", async (req, res) => {
             values.push(status);
         }
 
-        if (conditions.length > 0) {
-            const whereClause = ' WHERE ' + conditions.join(' AND ');
-            countQuery += whereClause;
-            dataQuery += whereClause;
-        }
+        const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-        // --- Parte 2: Executar a query de contagem ---
-        const totalResult = await db.query(countQuery, values);
+        // --- Executa as queries de contagem e de dados em paralelo para mais eficiência ---
+        const countQuery = `SELECT COUNT(*) FROM ocorrencias ${whereClause}`;
+        const dataQuery = `
+            SELECT id, matricula_autor, descricao, status, erro_mensagem, created_at 
+            FROM ocorrencias 
+            ${whereClause} 
+            ORDER BY created_at DESC 
+            LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+        `;
+
+        const [totalResult, dataResult] = await Promise.all([
+            db.query(countQuery, values),
+            db.query(dataQuery, [...values, limit, offset])
+        ]);
+
         const totalItems = parseInt(totalResult.rows[0].count, 10);
         const totalPages = Math.ceil(totalItems / limit);
 
-        // --- Parte 3: Executar a query de dados com paginação ---
-        const offset = (page - 1) * limit;
-        dataQuery += ` ORDER BY created_at DESC LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
-        const dataValues = [...values, limit, offset];
-
-        const { rows } = await db.query(dataQuery, dataValues);
-
-        // --- Parte 4: Retornar os dados e a metadata de paginação ---
-        res.json({ 
-            sucesso: true, 
-            data: rows,
+        res.status(200).json({
+            sucesso: true,
+            data: dataResult.rows,
             pagination: {
-                page: parseInt(page, 10),
-                limit: parseInt(limit, 10),
+                page,
+                limit,
                 totalItems,
                 totalPages
             }
         });
     } catch (error) {
         console.error("❌ Erro ao buscar histórico de ocorrências:", error);
-        res.status(500).json({
-            sucesso: false,
-            erro: "Falha ao buscar dados do banco de dados."
-        });
+        res.status(500).json({ sucesso: false, erro: "Falha ao buscar dados do banco de dados." });
     }
 });
 
 router.post("/", async (req, res) => {
-    let browser; // Declarar browser aqui para ser acessível no finally
-    let novaOcorrenciaId; // Para armazenar o ID da ocorrência no banco
-    try {
-        const {
-            matricula,
-            senha,
-            ocorrencia
-        } = req.body;
+    let browser;
+    let novaOcorrenciaId;
 
+    const { matricula, senha, ocorrencia } = req.body;
+
+    if (!matricula || !senha || !ocorrencia) {
+        return res.status(400).json({ sucesso: false, erro: "Dados incompletos. Matrícula, senha e ocorrência são obrigatórios." });
+    }
+
+    try {
         console.log("Recebido. Iniciando automação...");
         console.log("Dados da ocorrência:", ocorrencia);
 
-        // --- PASSO 1: Salvar a ocorrência no banco de dados com status 'iniciado' ---
-        try {
-            const queryText = `
-                INSERT INTO ocorrencias(matricula_autor, descricao, endereco, cpf, acoes_imediatas, machucado, tipo_evento, categoria, tipo_tipologia, latitude, longitude, status)
-                VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'iniciado')
-                RETURNING id;
-            `;
-            const queryValues = [
-                matricula, ocorrencia.descricao, ocorrencia.endereco, ocorrencia.cpf, 
-                ocorrencia.acoesImediatas, ocorrencia.machucado, ocorrencia.tipoEvento, 
-                ocorrencia.categoria, ocorrencia.tipoTipologia, ocorrencia.latitude, ocorrencia.longitude
-            ];
-            const dbResult = await db.query(queryText, queryValues);
-            novaOcorrenciaId = dbResult.rows[0].id;
-            console.log(`✅ Ocorrência salva no banco de dados com ID: ${novaOcorrenciaId}`);
-        } catch (dbError) {
-            console.error("Erro ao salvar no banco de dados:", dbError);
-            // Se não conseguir salvar no DB, o processo não deve continuar.
-            throw new Error("Falha crítica ao registrar ocorrência no banco de dados.");
-        }
+        // --- PASSO 1: Salvar a ocorrência no banco com status 'iniciado' ---
+        const queryText = `
+            INSERT INTO ocorrencias(matricula_autor, descricao, endereco, cpf, acoes_imediatas, machucado, tipo_evento, categoria, tipo_tipologia, latitude, longitude, status)
+            VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'iniciado')
+            RETURNING id;
+        `;
+        const { 
+            descricao, 
+            endereco, 
+            cpf, 
+            acoesImediatas, 
+            machucado, 
+            tipoEvento, 
+            categoria, 
+            tipoTipologia, 
+            latitude, 
+            longitude 
+        } = ocorrencia;
+
+        const queryValues = [
+            matricula, descricao, endereco, cpf, acoesImediatas, machucado, 
+            tipoEvento, categoria, tipoTipologia, latitude, longitude
+        ];
+        const dbResult = await db.query(queryText, queryValues);
+        novaOcorrenciaId = dbResult.rows[0].id;
+        console.log(`✅ Ocorrência salva no banco de dados com ID: ${novaOcorrenciaId}`);
 
         // --- PASSO 2: Executar a automação com Playwright ---
-
-        // Fazer login e obter a página e o navegador
-        const loginResult = await loginEDP(
-            matricula,
-            senha
-        );
+        const loginResult = await loginEDP(matricula, senha);
         browser = loginResult.browser;
         const page = loginResult.page;
 
-        // Preencher o formulário na página obtida
         await preencherOcorrenciaEDP(page, ocorrencia);
 
         // --- PASSO 3: Atualizar o status para 'concluido' no sucesso ---
         await db.query(
-            'UPDATE ocorrencias SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
-            ['concluido', novaOcorrenciaId]
+            'UPDATE ocorrencias SET status = $1 WHERE id = $2',
+            ['concluido', parseInt(novaOcorrenciaId, 10)]
         );
         console.log(`✅ Status da ocorrência ${novaOcorrenciaId} atualizado para 'concluido'.`);
 
-        res.json({
+        res.status(200).json({
             sucesso: true,
             mensagem: "Automação de preenchimento concluída com sucesso!"
         });
 
     } catch (error) {
         console.error("❌ Ocorreu um erro durante a automação:", error);
-        // --- PASSO 4: Se der erro, atualizar o status para 'falha' e registrar a mensagem ---
+        const errorMessage = error.message || "Erro desconhecido na automação.";
+
+        // --- PASSO 4: Se der erro, atualizar o status para 'falha' ---
         if (novaOcorrenciaId) {
-            await db.query(
-                'UPDATE ocorrencias SET status = $1, erro_mensagem = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3',
-                ['falha', error.message, novaOcorrenciaId]
-            );
-            console.log(`❌ Status da ocorrência ${novaOcorrenciaId} atualizado para 'falha'.`);
+            try {
+                await db.query(
+                    'UPDATE ocorrencias SET status = $1, erro_mensagem = $2 WHERE id = $3',
+                    ['falha', errorMessage, parseInt(novaOcorrenciaId, 10)]
+                );
+                console.log(`❌ Status da ocorrência ${novaOcorrenciaId} atualizado para 'falha'.`);
+            } catch (dbError) {
+                console.error(`Falha ao ATUALIZAR o status da ocorrência ${novaOcorrenciaId} para 'falha':`, dbError);
+            }
         }
-        res.status(500).json({
-            sucesso: false,
-            erro: "Ocorreu uma falha no servidor durante a automação."
-        });
+        res.status(500).json({ sucesso: false, erro: errorMessage });
 
     } finally {
         // --- PASSO 5: Garantir que o navegador seja fechado ---

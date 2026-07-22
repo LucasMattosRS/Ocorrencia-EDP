@@ -1,14 +1,24 @@
 {
   "name": "edp-ocorrencia-automation",
   "version": "1.0.0",
-  "description": "Automação de preenchimento de ocorrências SGS - EDP",
-  "scripts": {
-    "dev": "npx live-server src --port=3000 --open=/",
-    "build": "node -e \"const fs=require('fs'); const path=require('path'); const dist='dist'; fs.rmSync(dist,{recursive:true,force:true}); fs.mkdirSync(dist,{recursive:true}); fs.cpSync('src', dist, {recursive:true}); console.log('Build completo!');\"",
-    "deploy": "npm run build && npx netlify deploy --prod --dir=dist",
-    "deploy:draft": "npm run build && npx netlify deploy --dir=dist"
+  "description": "Backend para automação de ocorrências EDP",
+  "main": "server.js",
+  "engines": {
+    "node": ">=18.0.0"
   },
-  "devDependencies": {
-    "live-server": "^1.2.2"
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node teste_automacao.js",
+    "db:migrate": "node backend/db/migrate.js",
+    "postinstall": "npx playwright install --with-deps"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "node-fetch": "^2.7.0",
+    "pg": "^8.12.0",
+    "playwright": "^1.45.1"
   }
 }

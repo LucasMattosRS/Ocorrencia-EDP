@@ -19,3 +19,20 @@ CREATE TABLE ocorrencias (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Função de gatilho (trigger function) para atualizar o campo 'updated_at'.
+-- Esta função será executada automaticamente sempre que uma linha for atualizada.
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+   NEW.updated_at = NOW(); -- Define o campo 'updated_at' do registro que está sendo atualizado para a hora atual.
+   RETURN NEW; -- Retorna o registro modificado para que a operação de UPDATE possa continuar.
+END;
+$$ language 'plpgsql';
+
+-- Cria o gatilho (trigger) na tabela 'ocorrencias'.
+-- Ele será acionado ANTES de qualquer operação de UPDATE em qualquer linha.
+CREATE TRIGGER update_ocorrencias_updated_at
+BEFORE UPDATE ON ocorrencias
+FOR EACH ROW
+EXECUTE FUNCTION update_updated_at_column();

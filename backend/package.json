@@ -3,10 +3,15 @@
   "version": "1.0.0",
   "description": "Backend para automação de ocorrências EDP",
   "main": "server.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "test": "node teste_automacao.js"
+    "test": "node teste_automacao.js",
+    "db:migrate": "node db/migrate.js",
+    "postinstall": "npx playwright install --with-deps"
   },
   "dependencies": {
     "cors": "^2.8.5",
