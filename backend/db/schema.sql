@@ -21,11 +21,12 @@ CREATE TABLE IF NOT EXISTS ocorrencias (
 );
 
 -- Função de gatilho (trigger function) para atualizar o campo 'updated_at'.
+-- Esta função será executada automaticamente sempre que uma linha for atualizada.
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
-   NEW.updated_at = NOW();
-   RETURN NEW;
+   NEW.updated_at = NOW(); -- Define o campo 'updated_at' do registro que está sendo atualizado para a hora atual.
+   RETURN NEW; -- Retorna o registro modificado para que a operação de UPDATE possa continuar.
 END;
 $$ language 'plpgsql';
 

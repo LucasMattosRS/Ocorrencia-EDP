@@ -6,7 +6,7 @@ const { preencherOcorrenciaEDP } = require("../playwright/ocorrenciaEDP"); // Ca
 const path = require('path');
 
 // Importa a configuração do banco de dados usando um caminho absoluto para garantir compatibilidade no deploy.
-const db = require(path.join(__dirname, '..', 'db', 'pool')); // Caminho simplificado para a pasta db
+const db = require('../db/pool'); // Caminho simplificado para a pasta db
 
 // NOVA ROTA: Obter histórico de ocorrências
 router.get("/", async (req, res) => {
