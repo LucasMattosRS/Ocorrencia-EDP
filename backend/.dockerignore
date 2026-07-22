@@ -1,0 +1,7 @@
+# Ignora as dependências do Node.js (elas são instaladas dentro do contêiner)
+node_modules
+
+# Ignora arquivos de log e de ambiente local
+.env
+npm-debug.log
+error_screenshot.png
