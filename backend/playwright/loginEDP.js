@@ -1,14 +1,12 @@
 const { chromium } = require("playwright");
 
-
 async function loginEDP(matricula, senha){
-
     const browser = await chromium.launch({
-        headless:false
+        headless: true
     });
 
-
     const page = await browser.newPage();
+
 
 
     await page.goto(
