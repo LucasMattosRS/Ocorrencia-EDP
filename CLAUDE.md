@@ -80,6 +80,15 @@ dá pra testar o fluxo de erro/timeout de login sem VPN nem estar na rede da EDP
 
 ## Histórico de bugs corrigidos (2026-07-23)
 
+- **Crítico**: `backend/config.js` tinha `URL_BASE` errada (`https://sgs.edp.com.br/sgs/Ocorrencia/Informar`
+  — domínio `sgs.` que nem existe/não é o certo). A URL real do formulário "Nova Ocorrência",
+  confirmada pela dona do projeto e testada carregando a página de verdade (status 200, sem
+  redirect), é `https://sgo.edp.com.br/SGSIncidentManagement/InformarOcorrencia.aspx` (mesmo
+  domínio do login, `sgo.`). Os textos dos dropdowns na página real batem exatamente com os
+  valores fixos que `ocorrenciaEDP.js` tenta selecionar (`Relato de Ocorrência`, `Networks`,
+  `Contratada`, etc.), então o resto do mapeamento de campos parece correto — só a URL estava
+  errada. **Isso sozinho já poderia explicar qualquer falha da automação em produção até agora**,
+  independente da questão de rede.
 - **Crítico**: `src/app.js` referenciava `#acoes-imediatas` em 5 lugares (submit, autoSave,
   loadSavedData, checkUrlParams, bindEvents) mas o campo não existia no `index.html`. Isso
   quebrava **o botão "Gerar Ocorrência" inteiro** (exceção lançada antes do fetch) e o
@@ -124,12 +133,35 @@ dá pra testar o fluxo de erro/timeout de login sem VPN nem estar na rede da EDP
 - Faltam os ícones do PWA: `manifest.json` e `index.html` referenciam `icon-192.png` e
   `icon-512.png`, que não existem em `src/`.
 
-## Pergunta em aberto (rede EDP)
+## Rede EDP (CONFIRMADO 2026-07-23, não é mais dúvida em aberto)
 
-O dono do projeto descreveu que `sgo.edp.com.br` "só abre no wifi da EDP" — o design assume que
-só o **backend** (Render) precisa alcançar esse site; o celular da pessoa só fala com o Netlify
-+ Render, então funcionaria de qualquer rede. Testei daqui (fora da rede EDP) e a página de
-login carregou normalmente, o que sugere que não há bloqueio por IP/rede — só exige login
-válido. Ainda não confirmado com um teste real (credenciais verdadeiras, do celular, em dados
-móveis) se o Render de fato completa o fluxo inteiro em produção. Combinado de testar isso
-"amanhã" (a partir de 2026-07-23).
+O dono do projeto originalmente descreveu que `sgo.edp.com.br` "só abre no wifi da EDP" — o
+design assume que só o **backend** (Render) precisa alcançar esse site; o celular da pessoa só
+fala com o Netlify + Render, então funcionaria de qualquer rede. **Confirmado por dois testes
+independentes**: eu consegui carregar `sgo.edp.com.br` daqui (fora da rede EDP) via Playwright,
+e a dona do projeto também confirmou que o site abre normalmente no navegador dela sem estar na
+wifi da EDP. **Ou seja, o site não tem bloqueio por IP/rede — só exige login válido.** Não há
+mais motivo pra achar que é necessário rodar o backend num computador físico dentro da rede da
+EDP; o modelo atual (Render + Netlify, tudo público) deve funcionar de qualquer lugar.
+
+Ainda falta confirmar com um teste real de ponta a ponta (credencial válida de alguém que tem
+acesso ao SGS, do celular, fora da wifi EDP) se o fluxo completo — login + preenchimento da
+ocorrência — funciona no Render em produção. Combinado de testar isso "amanhã" (a partir de
+2026-07-23).
+
+**Importante sobre testes com credenciais reais**: só testar o endpoint `/auth/login` (login
+sozinho, sem preencher/enviar ocorrência) até ter certeza que os dados vão ser reais — a dona do
+projeto foi explícita que rodar o fluxo completo cria uma ocorrência de verdade no sistema de
+segurança da EDP e é praticamente impossível de excluir depois. Testei a matrícula `ex169337`
+em 2026-07-23 e o próprio SGS retornou "Usuário não localizado." (não é bug — os seletores e a
+automação funcionaram certinho, só essa credencial específica não existe/está errada no
+sistema). Confirmar matrícula/senha corretas antes de testar de novo.
+
+## Quem tem/não tem login no SGS
+
+A dona do projeto (quem está desenvolvendo/testando comigo) **não tem login válido no SGS** —
+ela é terceirizada e não tem acesso próprio ao sistema. Isso é esperado, não é bug: quando ela
+testa a tela de login com as próprias credenciais, a validação corretamente rejeita (mensagem
+"Falha no login. Verifique matrícula e senha."). As pessoas que efetivamente vão usar o app no
+dia a dia (os "terceiros" no campo) **têm** login válido no SGO — são elas que devem ser usadas
+pra testar o fluxo completo, não a conta da desenvolvedora.

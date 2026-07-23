@@ -6,7 +6,7 @@
 
 const SGS_CONFIG = {
     // URL base para navegação do Playwright
-    URL_BASE: "https://sgs.edp.com.br/sgs/Ocorrencia/Informar",
+    URL_BASE: "https://sgo.edp.com.br/SGSIncidentManagement/InformarOcorrencia.aspx",
 
     // Mapeamento dos textos das labels para os campos do formulário SGS
     LABELS: {
