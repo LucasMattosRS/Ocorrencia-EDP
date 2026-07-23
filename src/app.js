@@ -64,7 +64,7 @@ class EDPOcorrenciaApp {
   // LOGIN SGS
   // ============================================
 
-  loginSistema() {
+  async loginSistema() {
     const matricula = document.getElementById('matricula')?.value.trim();
     const senha = document.getElementById('senha')?.value.trim();
 
@@ -73,11 +73,41 @@ class EDPOcorrenciaApp {
       return;
     }
 
-    // Armazenar matrícula e senha para o envio da automação
-    this.loginEDP = { matricula, senha };
+    const btnLogin = document.getElementById('btn-login');
+    btnLogin.disabled = true;
+    btnLogin.textContent = "Verificando...";
+    this.showToast("⏳ Verificando credenciais no SGS...", "info");
 
-    this.showScreen("screen-form");
-    this.showToast("✅ Login informado. Preencha a ocorrência.", "success");
+    try {
+      const serverUrl = document.getElementById('server-url').value.trim();
+
+      const response = await fetch(`${serverUrl}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ matricula, senha }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.sucesso) {
+        throw new Error(result.erro || 'Não foi possível validar o login.');
+      }
+
+      // Armazenar matrícula e senha para o envio da automação
+      this.loginEDP = { matricula, senha };
+
+      this.showScreen("screen-form");
+      this.showToast("✅ Login validado! Preencha a ocorrência.", "success");
+
+    } catch (error) {
+      console.error("Erro ao validar login:", error);
+      this.showToast(`❌ Falha no login: ${error.message}`, "error");
+    } finally {
+      btnLogin.disabled = false;
+      btnLogin.textContent = "🔑 Entrar";
+    }
   }
 
   toggleConfig() {

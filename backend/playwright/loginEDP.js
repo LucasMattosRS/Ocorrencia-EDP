@@ -37,11 +37,14 @@ async function loginEDP(matricula, senha){
 
     // Espera robusta: Aguarda pela URL mudar para a página principal ou por um elemento específico.
     // O seletor 'a[href*="Logout.aspx"]' procura pelo link de Logout, um bom indicador de que o login foi bem-sucedido.
-    await page.waitForSelector('a[href*="Logout.aspx"]', { timeout: 15000 });
-    
-    // Verificação de falha de login
-    if (page.url().includes("Login.aspx")) {
-        throw new Error("Falha no login. Verifique matrícula e senha. A página de login foi recarregada.");
+    try {
+        await page.waitForSelector('a[href*="Logout.aspx"]', { timeout: 15000 });
+    } catch (timeoutError) {
+        // Se o timeout estourou e a página voltou/permaneceu no login, é credencial inválida.
+        if (page.url().includes("Login.aspx")) {
+            throw new Error("Falha no login. Verifique matrícula e senha.");
+        }
+        throw timeoutError;
     }
     console.log(
         "URL depois do login:",
