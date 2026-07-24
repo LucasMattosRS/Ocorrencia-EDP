@@ -1,6 +1,6 @@
 [build]
-  publish = "dist"
-  command = "npm run build"
+  publish = "src"
+  command = "echo 'sem build necessario, site estatico puro'"
 
 [[redirects]]
   from = "/*"
