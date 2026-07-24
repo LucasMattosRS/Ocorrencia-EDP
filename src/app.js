@@ -64,7 +64,7 @@ class EDPOcorrenciaApp {
   // LOGIN SGS
   // ============================================
 
-  async loginSistema() {
+  loginSistema() {
     const matricula = document.getElementById('matricula')?.value.trim();
     const senha = document.getElementById('senha')?.value.trim();
 
@@ -73,11 +73,19 @@ class EDPOcorrenciaApp {
       return;
     }
 
-    const btnLogin = document.getElementById('btn-login');
-    btnLogin.disabled = true;
-    btnLogin.textContent = "Verificando...";
-    this.showToast("⏳ Verificando credenciais no SGS...", "info");
+    // Armazenar matrícula e senha para o envio da automação
+    this.loginEDP = { matricula, senha };
 
+    // Avança pro formulário na hora, sem esperar a validação — o login real no SGS pode
+    // demorar mais de um minuto (site da EDP lento às vezes), e não faz sentido travar a
+    // pessoa numa tela de espera por isso. A validação roda por trás com bastante tempo;
+    // se der errado, ela recebe um aviso mesmo já estando no formulário.
+    this.showScreen("screen-form");
+    this.showToast("⏳ Validando credenciais no SGS em segundo plano...", "info");
+    this.validarLoginEmSegundoPlano(matricula, senha);
+  }
+
+  async validarLoginEmSegundoPlano(matricula, senha) {
     try {
       const serverUrl = document.getElementById('server-url').value.trim();
 
@@ -95,18 +103,11 @@ class EDPOcorrenciaApp {
         throw new Error(result.erro || 'Não foi possível validar o login.');
       }
 
-      // Armazenar matrícula e senha para o envio da automação
-      this.loginEDP = { matricula, senha };
-
-      this.showScreen("screen-form");
-      this.showToast("✅ Login validado! Preencha a ocorrência.", "success");
+      this.showToast("✅ Login validado no SGS!", "success");
 
     } catch (error) {
       console.error("Erro ao validar login:", error);
-      this.showToast(`❌ Falha no login: ${error.message}`, "error");
-    } finally {
-      btnLogin.disabled = false;
-      btnLogin.textContent = "🔑 Entrar";
+      this.showToast(`⚠️ Aviso: falha ao validar login (${error.message}). Confira matrícula/senha antes de gerar a ocorrência.`, "warning");
     }
   }
 

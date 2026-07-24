@@ -15,13 +15,13 @@ async function loginEDP(matricula, senha){
 
         await page.goto(
             "https://sgo.edp.com.br/SGSTUITemplate/Login.aspx",
-            { waitUntil: "load", timeout: 45000 }
+            { waitUntil: "load", timeout: 60000 }
         );
 
         // Espera o campo de usuário estar realmente pronto antes de mexer em qualquer coisa —
         // em servidores mais lentos (Render) a página pode demorar mais pra "assentar" do que
         // aqui no dev, mesmo depois do 'load' disparar.
-        await page.waitForSelector("#wt5_wtUsername_wtUserNameInput", { timeout: 20000 });
+        await page.waitForSelector("#wt5_wtUsername_wtUserNameInput", { timeout: 30000 });
 
         await page.fill(
             "#wt5_wtUsername_wtUserNameInput",
@@ -34,19 +34,22 @@ async function loginEDP(matricula, senha){
         );
 
         // O clique no botão de login travou algumas vezes em produção (Render) mesmo com o
-        // botão visível/habilitado — provavelmente lentidão momentânea do servidor. Tenta de
-        // novo uma vez antes de desistir, com mais tempo de espera.
+        // botão visível/habilitado — o call log mostrou que ele fica esperando a navegação
+        // pós-clique terminar, e o site da EDP às vezes demora bastante pra isso. Como a
+        // validação de login roda em segundo plano no app (a pessoa já está preenchendo o
+        // formulário enquanto isso), dá pra ser bem mais paciente aqui — só desiste depois de
+        // tentar de novo com bastante tempo.
         try {
-            await page.click("#wt5_wtAction_wtLoginButton", { timeout: 20000 });
+            await page.click("#wt5_wtAction_wtLoginButton", { timeout: 30000 });
         } catch (clickError) {
             console.log("⚠ Primeira tentativa de clique no login falhou, tentando de novo:", clickError.message.split("\n")[0]);
-            await page.click("#wt5_wtAction_wtLoginButton", { timeout: 40000 });
+            await page.click("#wt5_wtAction_wtLoginButton", { timeout: 90000 });
         }
 
         // Espera robusta: Aguarda pela URL mudar para a página principal ou por um elemento específico.
         // O seletor 'a[href*="Logout.aspx"]' procura pelo link de Logout, um bom indicador de que o login foi bem-sucedido.
         try {
-            await page.waitForSelector('a[href*="Logout.aspx"]', { timeout: 15000 });
+            await page.waitForSelector('a[href*="Logout.aspx"]', { timeout: 30000 });
         } catch (timeoutError) {
             // Se o timeout estourou e a página voltou/permaneceu no login, é credencial inválida.
             if (page.url().includes("Login.aspx")) {
