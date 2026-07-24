@@ -1,6 +1,9 @@
 [build]
   publish = "src"
   command = "echo 'sem build necessario, site estatico puro'"
+  # Pula o deploy quando o commit só mexeu em backend/ (Render), pra não gastar
+  # créditos do Netlify com rebuilds desnecessários de um site que não mudou.
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- src/ netlify.toml"
 
 [[redirects]]
   from = "/*"
