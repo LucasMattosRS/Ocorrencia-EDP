@@ -8,10 +8,12 @@ sempre iguais: Segmento, Empresa EDP, Área, Localidade, etc. — definidos em `
 ## Arquitetura (duas partes independentes)
 
 - **Frontend** (`src/` — HTML/CSS/JS puro, sem build tool, sem framework): PWA estática, deploy
-  no **Netlify** (`ocorrencia-edp.netlify.app`). Público, acessível de qualquer rede/celular.
-  Fala com o backend via `fetch` numa URL configurável (campo "Endereço do Servidor de
-  Automação" na tela de login, atrás do ícone ⚙️ — só existe na tela de login, não dá pra mudar
-  depois de avançar pro formulário).
+  no **Netlify** (`ocorrencia-edp26.netlify.app` — conta nova a partir de 2026-07-24; a conta
+  antiga, `ocorrencia-edp.netlify.app`, ficou sem créditos pra novos deploys de produção,
+  detalhe abaixo em "Armadilhas"). Público, acessível de qualquer rede/celular. Fala com o
+  backend via `fetch` numa URL configurável (campo "Endereço do Servidor de Automação" na tela
+  de login, atrás do ícone ⚙️ — só existe na tela de login, não dá pra mudar depois de avançar
+  pro formulário).
 - **Backend** (`backend/` — Express + Playwright + Postgres): deploy no **Render**
   (`ocorrencia-edp.onrender.com`). Tem seu próprio `package.json`/`server.js` — é o projeto real,
   não os arquivos soltos na raiz (ver "Armadilhas" abaixo). É este componente que precisa
@@ -169,11 +171,18 @@ que a dona do projeto mandou do formulário preenchido manualmente.** Descoberta
 
 - **Raiz do repo tem `package.json`/`package-lock.json`/`server.js` duplicados** do que tem em
   `backend/`. O `server.js` da raiz está vazio (morto). O `package.json`/`package-lock.json` da
-  raiz **não mexer sem olhar o painel do Netlify primeiro** — o `netlify.toml` manda rodar
-  `npm run build` mas esse `package.json` não tem script `build`; mesmo assim o deploy no
-  Netlify está funcionando (usuário confirmou), então o painel do Netlify provavelmente tem
-  build command/publish dir sobrescritos manualmente ali, diferente do que está no repo. Não dá
-  pra saber sem acesso ao painel — perguntar antes de tocar.
+  raiz não são mais usados pelo Netlify (ver ponto do `netlify.toml` logo abaixo), mas ainda não
+  foram removidos — não mexer sem necessidade, mas não é mais um risco de deploy quebrar.
+- **`netlify.toml` mandava rodar `npm run build`**, só que o `package.json` da raiz não tem
+  esse script — corrigido em 2026-07-24 pra publicar `src/` direto, sem build nenhum (o site é
+  HTML/CSS/JS puro, não precisa de bundler). Antes disso só não quebrava porque a conta antiga
+  do Netlify tinha algo sobrescrito manualmente no painel (nunca confirmado o quê).
+- **Conta antiga do Netlify (`ocorrencia-edp.netlify.app`) ficou sem créditos** pra novos
+  deploys de produção (mensagem: "running on operational credits... production deploys and
+  Agent Runners are paused") — o site antigo continua no ar, mas travado na versão de código de
+  antes de 2026-07-24 (com os bugs já corrigidos aqui). A dona do projeto criou uma **conta nova**
+  e reconectou o mesmo repo GitHub — é essa conta nova (`ocorrencia-edp26.netlify.app`) que
+  reflete o código atual. Não usar mais a URL antiga pra testar nada.
 - Porta **3001 está ocupada** nesta máquina por processos do Docker Desktop/WSL
   (`com.docker.backend`, `wslrelay`), não é nada do projeto. Usar outra porta ao testar local.
 - `backend/storage/sessions/` existe mas está vazia e não é referenciada em lugar nenhum do
