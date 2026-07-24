@@ -14,8 +14,14 @@ async function loginEDP(matricula, senha){
         page = await browser.newPage();
 
         await page.goto(
-            "https://sgo.edp.com.br/SGSTUITemplate/Login.aspx"
+            "https://sgo.edp.com.br/SGSTUITemplate/Login.aspx",
+            { waitUntil: "load", timeout: 45000 }
         );
+
+        // Espera o campo de usuário estar realmente pronto antes de mexer em qualquer coisa —
+        // em servidores mais lentos (Render) a página pode demorar mais pra "assentar" do que
+        // aqui no dev, mesmo depois do 'load' disparar.
+        await page.waitForSelector("#wt5_wtUsername_wtUserNameInput", { timeout: 20000 });
 
         await page.fill(
             "#wt5_wtUsername_wtUserNameInput",
@@ -27,9 +33,15 @@ async function loginEDP(matricula, senha){
             senha
         );
 
-        await page.click(
-            "#wt5_wtAction_wtLoginButton"
-        );
+        // O clique no botão de login travou algumas vezes em produção (Render) mesmo com o
+        // botão visível/habilitado — provavelmente lentidão momentânea do servidor. Tenta de
+        // novo uma vez antes de desistir, com mais tempo de espera.
+        try {
+            await page.click("#wt5_wtAction_wtLoginButton", { timeout: 20000 });
+        } catch (clickError) {
+            console.log("⚠ Primeira tentativa de clique no login falhou, tentando de novo:", clickError.message.split("\n")[0]);
+            await page.click("#wt5_wtAction_wtLoginButton", { timeout: 40000 });
+        }
 
         // Espera robusta: Aguarda pela URL mudar para a página principal ou por um elemento específico.
         // O seletor 'a[href*="Logout.aspx"]' procura pelo link de Logout, um bom indicador de que o login foi bem-sucedido.

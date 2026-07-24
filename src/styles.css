@@ -65,6 +65,18 @@ body {
   display: block;
 }
 
+.logo-image {
+  /* O arquivo original é um lockup horizontal (ícone + texto, bastante espaço vazio à
+     direita) — mostramos só o ícone à esquerda via object-fit/object-position, já que o
+     "Ocorrencia-EDP" abaixo já faz o papel do texto da marca. */
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  object-position: left center;
+  margin: 0 auto 10px;
+  display: block;
+}
+
 .header h1 {
   font-size: 1.5rem;
   color: var(--accent);
