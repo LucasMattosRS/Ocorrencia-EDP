@@ -13,6 +13,17 @@ async function loginEDP(matricula, senha){
     try {
         page = await browser.newPage();
 
+        // A plataforma da EDP (OutSystems) é pesada — imagem, fonte e mídia não fazem
+        // diferença nenhuma pra automação (só preenche campos, não precisa "ver" nada), então
+        // bloquear esses recursos reduz bastante o tempo de carregamento das páginas.
+        await page.route("**/*", (route) => {
+            const tipo = route.request().resourceType();
+            if (tipo === "image" || tipo === "font" || tipo === "media") {
+                return route.abort();
+            }
+            return route.continue();
+        });
+
         await page.goto(
             "https://sgo.edp.com.br/SGSTUITemplate/Login.aspx",
             { waitUntil: "load", timeout: 60000 }
@@ -42,30 +53,43 @@ async function loginEDP(matricula, senha){
         // não depende de acompanhar navegação nenhuma.
         await page.click("#wt5_wtAction_wtLoginButton", { timeout: 20000, noWaitAfter: true });
 
-        // Espera robusta: Aguarda pela URL mudar para a página principal ou por um elemento específico.
-        // O seletor 'a[href*="Logout.aspx"]' procura pelo link de Logout, um bom indicador de que o login foi bem-sucedido.
-        // Timeout bem generoso porque a plataforma da EDP (OutSystems) é pesada pra carregar
-        // depois do login, e a validação roda em segundo plano no app (a pessoa já está
-        // preenchendo o formulário enquanto isso), então dá pra ser bem mais paciente aqui.
-        try {
-            await page.waitForSelector('a[href*="Logout.aspx"]', { timeout: 150000 });
-        } catch (timeoutError) {
-            // Se o timeout estourou e a página voltou/permaneceu no login, é credencial inválida.
+        // Corre duas checagens em paralelo em vez de uma espera única: o link de Logout
+        // (sucesso) e o texto de erro que a EDP mostra na tela pra credencial inválida
+        // ("Usuário não localizado", etc). Assim uma credencial errada continua respondendo
+        // rápido (poucos segundos) igual antes, e só a tentativa que realmente está
+        // progredindo (credencial válida, site lento) usa o timeout generoso de até 150s.
+        const sucessoPromise = page
+            .waitForSelector('a[href*="Logout.aspx"]', { timeout: 150000 })
+            .then(() => ({ tipo: "sucesso" }))
+            .catch(() => ({ tipo: "timeout_sucesso" }));
+
+        const erroPromise = page
+            .waitForFunction(
+                () => /não localizado|inv[aá]lid|incorret/i.test(document.body.innerText || ""),
+                { timeout: 150000 }
+            )
+            .then(() => ({ tipo: "erro_detectado" }))
+            .catch(() => ({ tipo: "timeout_erro" }));
+
+        const resultado = await Promise.race([sucessoPromise, erroPromise]);
+
+        if (resultado.tipo === "erro_detectado") {
+            throw new Error("Falha no login. Verifique matrícula e senha.");
+        }
+        if (resultado.tipo !== "sucesso") {
+            // Nenhuma das duas checagens resolveu antes do timeout de 150s — situação
+            // ambígua (site travado de verdade, ou seletor de sucesso desatualizado).
+            // Confirma pela URL antes de decidir, e inclui contexto extra no erro.
             if (page.url().includes("Login.aspx")) {
                 throw new Error("Falha no login. Verifique matrícula e senha.");
             }
-            // Chegou a sair do Login.aspx mas não achou o link de Logout dentro do tempo —
-            // inclui URL/título atuais no erro pra ajudar a diagnosticar sem precisar de outro
-            // teste ao vivo (ex: descobrir se travou numa página intermediária de verdade, ou
-            // se só o seletor de sucesso está errado pra essa página).
             let contexto = "";
             try {
                 contexto = ` (URL atual: ${page.url()}, título: "${await page.title()}")`;
             } catch (_) {
                 // ignora falha ao coletar contexto extra
             }
-            timeoutError.message += contexto;
-            throw timeoutError;
+            throw new Error(`Timeout esperando confirmação de login.${contexto}`);
         }
         console.log(
             "URL depois do login:",

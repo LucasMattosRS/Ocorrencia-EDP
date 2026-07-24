@@ -102,6 +102,20 @@ async function preencherOcorrenciaEDP(page, ocorrencia) {
     console.log("Iniciando preenchimento do formulário de ocorrência...");
 
     try {
+        // Mesma otimização do login: bloqueia imagem/fonte/mídia, que não fazem diferença pra
+        // automação e deixam essa página pesada (OutSystems) mais rápida de carregar. Se a
+        // página já veio de um page com essa regra registrada (ex: reaproveitando a mesma
+        // aba do login), o registro duplicado não causa problema.
+        await page.route("**/*", (route) => {
+            const tipo = route.request().resourceType();
+            if (tipo === "image" || tipo === "font" || tipo === "media") {
+                return route.abort();
+            }
+            return route.continue();
+        }).catch(() => {
+            // já pode haver uma rota registrada cobrindo o mesmo padrão; ignora.
+        });
+
         await page.goto(SGS_CONFIG.URL_BASE, { waitUntil: "domcontentloaded" });
         await page.waitForSelector(`#${IDS.descricao}`, { timeout: 20000 });
         console.log(`Navegou para: ${SGS_CONFIG.URL_BASE}`);
