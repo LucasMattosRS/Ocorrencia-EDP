@@ -3,10 +3,9 @@ const { chromium } = require("playwright");
 async function loginEDP(matricula, senha){
     const browser = await chromium.launch({
         headless: true,
-        // Esta linha é crucial para ambientes Docker.
-        // Ela diz ao Playwright para usar o navegador Chromium que já vem na imagem,
-        // em vez de tentar baixar um novo.
-        channel: 'chrome',
+        // NÃO usar channel: 'chrome' aqui — isso pede o Google Chrome de verdade, que não vem
+        // instalado na imagem Docker (só o Chromium do próprio Playwright vem). Sem o channel,
+        // o Playwright usa o Chromium que ele mesmo gerencia/instala (ver Dockerfile).
         args: ['--no-sandbox', '--disable-setuid-sandbox'] // Argumentos de segurança para rodar no Linux
     });
 

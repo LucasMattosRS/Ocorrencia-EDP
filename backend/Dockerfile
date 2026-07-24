@@ -17,6 +17,10 @@ COPY package.json package-lock.json ./
 # Ele é geralmente mais rápido e seguro que 'npm install'.
 RUN npm ci
 
+# Garante que o Chromium instalado bate com a versão do pacote 'playwright' do package.json
+# (pode ser mais nova que a da imagem base acima), evitando erro de "executável não encontrado".
+RUN npx playwright install --with-deps chromium
+
 # Copia o restante do código da aplicação para o diretório de trabalho.
 COPY . .
 
