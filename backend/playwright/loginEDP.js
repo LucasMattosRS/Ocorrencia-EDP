@@ -44,16 +44,27 @@ async function loginEDP(matricula, senha){
 
         // Espera robusta: Aguarda pela URL mudar para a página principal ou por um elemento específico.
         // O seletor 'a[href*="Logout.aspx"]' procura pelo link de Logout, um bom indicador de que o login foi bem-sucedido.
-        // Timeout generoso porque o site da EDP pode ficar lento/com vários redirecionamentos, e a
-        // validação roda em segundo plano no app (a pessoa já está preenchendo o formulário
-        // enquanto isso), então dá pra ser bem mais paciente aqui.
+        // Timeout bem generoso porque a plataforma da EDP (OutSystems) é pesada pra carregar
+        // depois do login, e a validação roda em segundo plano no app (a pessoa já está
+        // preenchendo o formulário enquanto isso), então dá pra ser bem mais paciente aqui.
         try {
-            await page.waitForSelector('a[href*="Logout.aspx"]', { timeout: 90000 });
+            await page.waitForSelector('a[href*="Logout.aspx"]', { timeout: 150000 });
         } catch (timeoutError) {
             // Se o timeout estourou e a página voltou/permaneceu no login, é credencial inválida.
             if (page.url().includes("Login.aspx")) {
                 throw new Error("Falha no login. Verifique matrícula e senha.");
             }
+            // Chegou a sair do Login.aspx mas não achou o link de Logout dentro do tempo —
+            // inclui URL/título atuais no erro pra ajudar a diagnosticar sem precisar de outro
+            // teste ao vivo (ex: descobrir se travou numa página intermediária de verdade, ou
+            // se só o seletor de sucesso está errado pra essa página).
+            let contexto = "";
+            try {
+                contexto = ` (URL atual: ${page.url()}, título: "${await page.title()}")`;
+            } catch (_) {
+                // ignora falha ao coletar contexto extra
+            }
+            timeoutError.message += contexto;
             throw timeoutError;
         }
         console.log(
