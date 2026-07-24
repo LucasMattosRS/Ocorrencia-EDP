@@ -192,13 +192,34 @@ que a dona do projeto mandou do formulário preenchido manualmente.** Descoberta
   autenticação na API — qualquer um que souber a URL do Render pode chamar `/ocorrencia` ou
   `/auth/login` com qualquer matrícula/senha. Aceito por enquanto (uso pequeno/confiável), mas
   vale lembrar se o uso crescer.
-- Risco não confirmado: `backend/Dockerfile` usa a imagem
-  `mcr.microsoft.com/playwright/javascript:v1.40.0-jammy` (Playwright v1.40 pré-instalado), mas
-  `backend/package.json` pede `playwright: ^1.45.1` via npm — descompasso de versão entre o
-  navegador da imagem e a lib instalada. `loginEDP.js` também usa `channel: 'chrome'` (Google
-  Chrome de verdade), que normalmente não vem pré-instalado nessa imagem base (ela traz só
-  Chromium). Ainda não confirmado se isso quebra em produção — perguntar se uma ocorrência real
-  já foi enviada com sucesso no Render antes de mexer.
+- **CONFIRMADO E CORRIGIDO (2026-07-24)**: o Render **não usa `backend/Dockerfile`** — o serviço
+  está configurado como "Node" nativo (Build Command `npm install`, Start Command `npm start`,
+  Root Directory `backend`, visto direto no painel). Ou seja, o Dockerfile do repo é código
+  morto pra esse serviço (não apagar sem confirmar, pode servir de referência/futuro uso, mas
+  não é o que roda hoje). Isso causou uma cadeia de erros reais em produção, só descoberta
+  testando o app de verdade pelo celular:
+  1. `loginEDP.js` usava `channel: 'chrome'` (pede o Google Chrome de verdade) — não vem
+     instalado nesse ambiente. Corrigido removendo o `channel` (usa o Chromium que o próprio
+     Playwright gerencia).
+  2. Isso revelou o próximo problema: o Chromium do Playwright não estava instalado de jeito
+     nenhum no ambiente do Render. Tentei um `postinstall` com
+     `npx playwright install --with-deps chromium` no `backend/package.json` — **isso quebrou o
+     build inteiro**, porque `--with-deps` roda `apt-get` (precisa de root, não permitido no
+     ambiente de build do Render). Corrigido tirando o `--with-deps` (só baixa o binário, sem
+     instalar pacotes de sistema).
+  3. Mesmo com o build passando e o Chromium sendo baixado no `postinstall`, o erro
+     "Executable doesn't exist at /opt/render/.cache/ms-playwright/..." continuava em produção —
+     o cache de build do Render (`/opt/render/.cache`) não é carregado pro ambiente de execução,
+     só `node_modules`/o código do projeto são garantidos. Corrigido de vez adicionando a
+     variável de ambiente **`PLAYWRIGHT_BROWSERS_PATH=0`** no painel do Render (Environment) —
+     isso faz o Playwright instalar o navegador dentro de `node_modules` em vez do cache global,
+     garantindo que ele "vai junto" pro ambiente de execução. Precisou de um "Clear build cache
+     & deploy" manual pra pegar a variável nova e reinstalar do zero.
+  - Se no futuro aparecer um erro tipo "error while loading shared libraries" (bibliotecas de
+    sistema faltando, que só o `--with-deps`/apt resolveria), a solução seria migrar o serviço
+    no Render de "Node nativo" pra "Docker" de verdade, usando o `backend/Dockerfile` (que já
+    tem a imagem certa da Microsoft com tudo isso pré-instalado) — mas isso não foi necessário
+    até agora, o fix do `PLAYWRIGHT_BROWSERS_PATH` resolveu sozinho.
 - Faltam os ícones do PWA: `manifest.json` e `index.html` referenciam `icon-192.png` e
   `icon-512.png`, que não existem em `src/`.
 
