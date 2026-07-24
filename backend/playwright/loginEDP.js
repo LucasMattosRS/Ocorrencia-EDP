@@ -33,23 +33,22 @@ async function loginEDP(matricula, senha){
             senha
         );
 
-        // O clique no botão de login travou algumas vezes em produção (Render) mesmo com o
-        // botão visível/habilitado — o call log mostrou que ele fica esperando a navegação
-        // pós-clique terminar, e o site da EDP às vezes demora bastante pra isso. Como a
-        // validação de login roda em segundo plano no app (a pessoa já está preenchendo o
-        // formulário enquanto isso), dá pra ser bem mais paciente aqui — só desiste depois de
-        // tentar de novo com bastante tempo.
-        try {
-            await page.click("#wt5_wtAction_wtLoginButton", { timeout: 30000 });
-        } catch (clickError) {
-            console.log("⚠ Primeira tentativa de clique no login falhou, tentando de novo:", clickError.message.split("\n")[0]);
-            await page.click("#wt5_wtAction_wtLoginButton", { timeout: 90000 });
-        }
+        // O clique no botão de login travava em produção mesmo com o botão visível/habilitado —
+        // o call log mostrou que o Playwright fica tentando acompanhar uma cadeia de
+        // redirecionamentos do próprio site (ex: Login.aspx -> SGSTUITemplate/ -> página final)
+        // e se confunde tentando esperar "a" navegação certa depois do clique. noWaitAfter tira
+        // essa espera embutida do click() — quem garante que o login realmente terminou é o
+        // waitForSelector do Logout.aspx logo abaixo, que tem seu próprio timeout generoso e
+        // não depende de acompanhar navegação nenhuma.
+        await page.click("#wt5_wtAction_wtLoginButton", { timeout: 20000, noWaitAfter: true });
 
         // Espera robusta: Aguarda pela URL mudar para a página principal ou por um elemento específico.
         // O seletor 'a[href*="Logout.aspx"]' procura pelo link de Logout, um bom indicador de que o login foi bem-sucedido.
+        // Timeout generoso porque o site da EDP pode ficar lento/com vários redirecionamentos, e a
+        // validação roda em segundo plano no app (a pessoa já está preenchendo o formulário
+        // enquanto isso), então dá pra ser bem mais paciente aqui.
         try {
-            await page.waitForSelector('a[href*="Logout.aspx"]', { timeout: 30000 });
+            await page.waitForSelector('a[href*="Logout.aspx"]', { timeout: 90000 });
         } catch (timeoutError) {
             // Se o timeout estourou e a página voltou/permaneceu no login, é credencial inválida.
             if (page.url().includes("Login.aspx")) {
