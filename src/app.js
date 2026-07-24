@@ -2,6 +2,53 @@
 // APP PRINCIPAL - EDP OCORRÊNCIA
 // ============================================
 
+// Levantado direto do site real do SGS em 2026-07-24: cada Categoria de Tipologia tem sua
+// própria lista de Tipo de Tipologia (são listas diferentes, não uma lista única) — por isso
+// o dropdown de Tipo de Tipologia precisa ser preenchido dinamicamente conforme a Categoria
+// escolhida, em vez de uma lista fixa no HTML.
+const TIPOLOGIA_POR_CATEGORIA = {
+  "Acidentes": [
+    "Ataque de animais", "Armazenamento inadequado", "Arranjo Físico inadequado",
+    "Bloqueio de energia", "Desvios de Preenchimento (AST/PT/APR/CheckList)", "Eletricidade",
+    "Espaço confinado", "Falha em isolamento", "Içamento e movimentação de carga",
+    "Iluminação inadequada", "Máquinas e equipamentos", "Organização e limpeza",
+    "Probabilidade de incêndio e explosão", "Queda/Projeção de material", "Queda em altura",
+    "Trabalho à quente", "Uso inadequado de EPI's", "Uso inadequado de ferramentas", "PGR",
+    "PCMSO", "Escavação Irregular", "Ausência de autorização, capacitação e habilitação",
+    "Ausência ou Falha de sinalização", "Supressão Vegetal - abate de árvore",
+    "Desvio de trânsito", "Afogamento", "Queda de pessoa em mesmo nível", "Ação de Terceiros",
+    "Sinalização Irregular", "Falta de recursos de emergência", "Área de Vivência",
+    "Alojamento inadequado", "Pendência de Documentação(PPRA, PCMSO, PAE)", "Prensagem",
+    "Entorse", "Soterramento"
+  ],
+  "Biológicos": [
+    "Bacilos", "Bactéria", "Fungos", "Parasitas", "Vírus", "Vírus - COVID-19",
+    "Vírus - SOC-PR-12 COVID (Transmissão)"
+  ],
+  "Ergonômico": [
+    "Controle rígido de produtividade", "Esforço físico intenso", "Imposição de ritmo excessivo",
+    "Jornadas de trabalho prolongadas", "Levantamento e transporte manual de peso",
+    "Monotonia e repetitividade", "Trabalho em turno e noturno"
+  ],
+  "Físico": [
+    "Calor", "Frio", "Pressões anormais", "Radiação Ionizante", "Radiação não-ionizante",
+    "Ruído", "Umidade", "Vibração"
+  ],
+  "Meio Ambiente": [
+    "Resíduos", "Requisitos Legais", "Canteiro de Obras", "Máquinas e equipamentos",
+    "Produtos perigosos", "Efluentes", "Vegetação"
+  ],
+  "Químicos": [
+    "Fumos metálicos", "Gases", "Neblina", "Poeira",
+    "Substância compostas ou produtos químicos em geral", "Vapores orgânicos"
+  ],
+  "Stop Work": [
+    "Aterramentos", "Coberturas Isolantes", "Comunicação", "EPI", "Ferramentas Individuais",
+    "Infraestrutura", "Projeto e Construção", "Treinamento", "Veículos / direção",
+    "Condições Climáticas"
+  ]
+};
+
 class EDPOcorrenciaApp {
 
   constructor() {
@@ -21,6 +68,26 @@ class EDPOcorrenciaApp {
     this.bindEvents();
     this.loadSavedData();
     this.checkUrlParams();
+  }
+
+  // Preenche o select de Tipo de Tipologia com as opções da Categoria escolhida (elas são
+  // listas diferentes por categoria no site real, não uma lista única). Se valorSalvo bater
+  // com uma opção da nova lista, já deixa selecionado (usado ao restaurar rascunho/URL).
+  atualizarTipoTipologia(categoriaEscolhida, valorSalvo = "") {
+    const select = document.getElementById('tipo-tipologia');
+    if (!select) return;
+
+    const opcoes = TIPOLOGIA_POR_CATEGORIA[categoriaEscolhida];
+
+    if (!opcoes) {
+      select.innerHTML = '<option value="">Selecione a categoria primeiro</option>';
+      select.disabled = true;
+      return;
+    }
+
+    select.disabled = false;
+    select.innerHTML = '<option value="">Selecione</option>' +
+      opcoes.map(op => `<option${op === valorSalvo ? ' selected' : ''}>${op}</option>`).join('');
   }
 
   bindEvents() {
@@ -55,6 +122,10 @@ class EDPOcorrenciaApp {
 
     document.querySelectorAll('input[name="machucado"], #tipo-evento, #categoria-tipologia, #tipo-tipologia').forEach(el => {
       el.addEventListener('change', () => this.autoSave());
+    });
+
+    document.getElementById('categoria-tipologia')?.addEventListener('change', (e) => {
+      this.atualizarTipoTipologia(e.target.value);
     });
 
     document.getElementById('btn-localizacao')?.addEventListener('click', () => this.obterLocalizacao());
@@ -426,7 +497,9 @@ https://sgs.edp.com.br/sgs/Ocorrencia/Informar`;
       document.getElementById("acoes-imediatas").value = dados.acoesImediatas || "";
       document.getElementById("tipo-evento").value = dados.tipoEvento || "";
       document.getElementById("categoria-tipologia").value = dados.categoria || "";
-      document.getElementById("tipo-tipologia").value = dados.tipoTipologia || "";
+      // Precisa popular as opções de Tipo de Tipologia da categoria salva antes de poder
+      // selecionar o valor salvo (o select começa vazio até a categoria ser escolhida).
+      this.atualizarTipoTipologia(dados.categoria || "", dados.tipoTipologia || "");
       document.getElementById('latitude').value = dados.latitude || '';
       document.getElementById('longitude').value = dados.longitude || '';
       const radio = document.querySelector(`input[name="machucado"][value="${dados.machucado}"]`);
@@ -454,6 +527,7 @@ https://sgs.edp.com.br/sgs/Ocorrencia/Informar`;
       machucado: "machucado"
     };
     Object.keys(mapa).forEach(param => {
+      if (param === 'tipoTipologia') return; // tratado abaixo, depois da categoria
       const valor = params.get(param);
       if (valor) {
         const campo = document.getElementById(mapa[param]);
@@ -462,6 +536,15 @@ https://sgs.edp.com.br/sgs/Ocorrencia/Informar`;
         }
       }
     });
+
+    // Tipo de Tipologia depende da Categoria já estar aplicada pra ter as opções certas.
+    if (params.get('categoria')) {
+      const tipoTipologiaParam = params.get('tipoTipologia');
+      this.atualizarTipoTipologia(
+        decodeURIComponent(params.get('categoria')),
+        tipoTipologiaParam ? decodeURIComponent(tipoTipologiaParam) : ''
+      );
+    }
   }
 
   // ============================================
