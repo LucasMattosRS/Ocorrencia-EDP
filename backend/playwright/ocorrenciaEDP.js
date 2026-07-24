@@ -1,76 +1,96 @@
 const SGS_CONFIG = require("../config");
 
 // ============================================
-// Funções Auxiliares (inspiradas no bookmarklet.js)
+// Funções Auxiliares
 // ============================================
+//
+// O formulário atual do SGS usa dropdowns customizados (Select2) por cima de <select>
+// escondidos — por isso setamos o valor direto no DOM e disparamos 'change', em vez de
+// tentar clicar na parte visual (é assim que o próprio Select2 espera ser atualizado
+// programaticamente, e é o mesmo evento que ele escuta quando um usuário interage de verdade).
 
-/**
- * Normaliza o texto para facilitar a comparação, removendo acentos e caracteres especiais.
- * @param {string} value O texto a ser normalizado.
- * @returns {string} O texto normalizado.
- */
-function normalizeText(value) {
-    return String(value || '')
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-zA-Z0-9\s]/g, '')
-      .replace(/\s+/g, ' ')
-      .trim()
-      .toLowerCase();
-}
-  
-/**
- * Encontra um campo (select, input, textarea) com base no texto de sua label associada e define seu valor.
- * @param {import('playwright').Page} page A instância da página do Playwright.
- * @param {string} label O texto da label a ser procurada.
- * @param {string} value O valor a ser inserido no campo.
- */
-async function setValueByLabel(page, label, value) {
+async function setText(page, id, value) {
     if (!value) return;
     try {
-        const fieldLocator = page.locator('*:visible', { has: page.locator(`text=${label}`) }).last();
-        const container = fieldLocator.locator('xpath=ancestor::*[self::tr or self::div[contains(@class, "field")] or self::div[contains(@class, "row")]][1]');
-
-        // Tenta encontrar um select
-        const select = container.locator('select');
-        if (await select.count() > 0) {
-            await select.selectOption({ label: value });
-            console.log(`✓ (Select) ${label} = ${value}`);
-            return;
-        }
-
-        // Tenta encontrar um input de texto ou textarea
-        const input = container.locator('input[type="text"], input[type="search"], textarea');
-        if (await input.count() > 0) {
-            await input.fill(value);
-            console.log(`✓ (Input) ${label} = ${value}`);
-            return;
-        }
-
-        console.log(`✗ Campo para "${label}" não encontrado no container.`);
+        await page.fill(`#${id}`, String(value));
+        console.log(`✓ (Texto) ${id}`);
     } catch (e) {
-        console.log(`✗ Erro ao tentar preencher "${label}":`, e.message);
+        console.log(`✗ Erro ao preencher texto "${id}":`, e.message);
     }
 }
 
-/**
- * Encontra um grupo de radio buttons com base na label da pergunta e seleciona a opção correta.
- * @param {import('playwright').Page} page A instância da página do Playwright.
- * @param {string} label O texto da pergunta associada aos radio buttons.
- * @param {string} value O texto da opção de rádio a ser selecionada.
- */
-async function setRadioByLabel(page, label, value) {
+// O campo de CPF tem uma máscara de digitação (___.___.___-__) que só reage a eventos de
+// teclado de verdade — page.fill() seta o value direto e a máscara não reconhece, ficando
+// vazia. page.type() simula a digitação caractere por caractere e funciona com a máscara.
+async function setTextTyped(page, id, value) {
     if (!value) return;
     try {
-        const radioGroupLocator = page.locator('*:visible', { has: page.locator(`text=${label}`) }).last();
-        // Seleciona a opção de rádio pelo texto do seu label
-        await radioGroupLocator.locator('label', { hasText: value }).click();
-        console.log(`✓ (Radio) ${label} = ${value}`);
+        await page.click(`#${id}`);
+        await page.keyboard.press("Control+A");
+        await page.keyboard.press("Delete");
+        await page.type(`#${id}`, String(value), { delay: 30 });
+        console.log(`✓ (Texto digitado) ${id}`);
     } catch (e) {
-        console.log(`✗ Erro ao tentar selecionar radio para "${label}" com valor "${value}":`, e.message);
+        console.log(`✗ Erro ao digitar em "${id}":`, e.message);
     }
 }
 
+async function setSelectByLabel(page, id, label) {
+    if (!label) return;
+    const result = await page.evaluate(({ id, label }) => {
+        const el = document.getElementById(id);
+        if (!el) return "no-element";
+        const opt = Array.from(el.options).find((o) => o.text.trim() === label);
+        if (!opt) return "no-option";
+        el.value = opt.value;
+        el.dispatchEvent(new Event("change", { bubbles: true }));
+        el.dispatchEvent(new Event("input", { bubbles: true }));
+        return "ok";
+    }, { id, label });
+
+    if (result === "ok") {
+        console.log(`✓ (Select) ${id} = "${label}"`);
+    } else {
+        console.log(`✗ Falhou "${label}" em "${id}": ${result}`);
+    }
+}
+
+async function setCheckbox(page, id, checked) {
+    await page.evaluate(({ id, checked }) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.checked = checked;
+        el.dispatchEvent(new Event("click", { bubbles: true }));
+        el.dispatchEvent(new Event("change", { bubbles: true }));
+    }, { id, checked });
+}
+
+// Espera a lista de opções de um <select> em cascata (ex: Empresa EDP, Localidade, Tipo de
+// Tipologia) ser atualizada pelo servidor depois que o campo do qual ele depende foi
+// selecionado. Alguns desses campos já nascem com uma lista padrão (não vazia), então em vez
+// de só checar "tem mais de 1 opção", compara a assinatura da lista antes/depois e espera
+// ela mudar de verdade.
+async function waitForCascade(page, id, timeout = 10000) {
+    const before = await page.evaluate((fieldId) => {
+        const el = document.getElementById(fieldId);
+        return el ? Array.from(el.options).map((o) => o.value).join("|") : null;
+    }, id);
+
+    try {
+        await page.waitForFunction(
+            ({ fieldId, before }) => {
+                const el = document.getElementById(fieldId);
+                if (!el) return false;
+                const now = Array.from(el.options).map((o) => o.value).join("|");
+                return now !== before && el.options.length > 1;
+            },
+            { fieldId: id, before },
+            { timeout }
+        );
+    } catch (e) {
+        console.log(`⚠ Cascata de "${id}" não mudou dentro do timeout — seguindo assim mesmo.`);
+    }
+}
 
 /**
  * Função principal que orquestra o preenchimento do formulário.
@@ -78,46 +98,75 @@ async function setRadioByLabel(page, label, value) {
  * @param {object} ocorrencia - O objeto contendo os dados da ocorrência.
  */
 async function preencherOcorrenciaEDP(page, ocorrencia) {
+    const { IDS, FIXED_VALUES } = SGS_CONFIG;
     console.log("Iniciando preenchimento do formulário de ocorrência...");
 
     try {
-        await page.goto(SGS_CONFIG.URL_BASE);
+        await page.goto(SGS_CONFIG.URL_BASE, { waitUntil: "domcontentloaded" });
+        await page.waitForSelector(`#${IDS.descricao}`, { timeout: 20000 });
         console.log(`Navegou para: ${SGS_CONFIG.URL_BASE}`);
 
-        // 1. Preencher campos com base nos dados do formulário do usuário
-        await setValueByLabel(page, SGS_CONFIG.LABELS.descricao, ocorrencia.descricao);
-        await setValueByLabel(page, SGS_CONFIG.LABELS.endereco, ocorrencia.endereco);
-        await setValueByLabel(page, SGS_CONFIG.LABELS.cpf, ocorrencia.cpf);
-        await setValueByLabel(page, SGS_CONFIG.LABELS.tipoEvento, ocorrencia.tipoEvento);
-        await setValueByLabel(page, SGS_CONFIG.LABELS.categoria, ocorrencia.categoria);
-        await setValueByLabel(page, SGS_CONFIG.LABELS.tipoTipologia, ocorrencia.tipoTipologia);
-        await setRadioByLabel(page, SGS_CONFIG.LABELS.machucado, ocorrencia.machucado);
-        
-        // Preenche Ações Imediatas se houver
-        if (ocorrencia.acoesImediatas) {
-            await page.fill(SGS_CONFIG.SELECTORS.acoesImediatas, ocorrencia.acoesImediatas);
-            console.log("Preencheu: Ações Imediatas");
+        // "Local Externo" precisa ser marcado ANTES — é o que revela o campo de Endereço.
+        await setCheckbox(page, IDS.localExterno, true);
+        await page.waitForTimeout(800);
+
+        // 1. Campos escolhidos pela pessoa no app
+        await setText(page, IDS.descricao, ocorrencia.descricao);
+        await setTextTyped(page, IDS.cpf, ocorrencia.cpf);
+        await setText(page, IDS.endereco, ocorrencia.endereco);
+        await setText(page, IDS.acoesImediatas, ocorrencia.acoesImediatas);
+        await setText(page, IDS.latitude, ocorrencia.latitude);
+        await setText(page, IDS.longitude, ocorrencia.longitude);
+        await setSelectByLabel(page, IDS.tipoEvento, ocorrencia.tipoEvento);
+        await setSelectByLabel(page, IDS.machucado, ocorrencia.machucado);
+
+        // Categoria de Tipologia -> Tipo de Tipologia também é cascata (a lista de Tipo de
+        // Tipologia só chega do servidor depois da Categoria ser selecionada).
+        await setSelectByLabel(page, IDS.categoria, ocorrencia.categoria);
+        if (ocorrencia.categoria) {
+            await waitForCascade(page, IDS.tipoTipologia);
         }
-        
-        // 2. Preencher dropdowns com valores FIXOS para garantir consistência
-        await page.selectOption(SGS_CONFIG.SELECTORS.tipoOcorrencia, { label: 'Relato de Ocorrência' });
-        await page.selectOption(SGS_CONFIG.SELECTORS.segmento, { label: 'Networks' });
-        await page.selectOption(SGS_CONFIG.SELECTORS.empresaEDP, { label: 'EDP SP DISTRIB DE ENERGIA' });
-        await page.selectOption(SGS_CONFIG.SELECTORS.tipoEmpresa, { label: 'Contratada' });
-        await page.selectOption(SGS_CONFIG.SELECTORS.areaObservador, { label: 'Prj e Construção SP' });
-        await page.selectOption(SGS_CONFIG.SELECTORS.localidade, { label: '12 - Sede São José dos Campos' });
-        await page.selectOption(SGS_CONFIG.SELECTORS.resolvido, { label: 'Sim' });
-        await page.selectOption(SGS_CONFIG.SELECTORS.potencialGravidade, { label: 'PG1-Baixo' });
+        await setSelectByLabel(page, IDS.tipoTipologia, ocorrencia.tipoTipologia);
+        console.log("Preencheu os campos escolhidos pela pessoa.");
+
+        // 2. Campos fixos/automáticos (sem dependência entre si)
+        await setSelectByLabel(page, IDS.tipoOcorrencia, FIXED_VALUES.tipoOcorrencia);
+        await setSelectByLabel(page, IDS.tipoEmpresa, FIXED_VALUES.tipoEmpresa);
+        await setSelectByLabel(page, IDS.resolvido, FIXED_VALUES.resolvido);
+        await setSelectByLabel(page, IDS.potencialGravidade, FIXED_VALUES.potencialGravidade);
+
+        // Segmento -> Empresa EDP: a lista de Empresa só chega do servidor depois do Segmento.
+        await setSelectByLabel(page, IDS.segmento, FIXED_VALUES.segmento);
+        await waitForCascade(page, IDS.empresaEDP);
+        await setSelectByLabel(page, IDS.empresaEDP, FIXED_VALUES.empresaEDP);
+
+        // Área do observador -> Localidade: mesma lógica de cascata.
+        await setSelectByLabel(page, IDS.areaObservador, FIXED_VALUES.areaObservador);
+        await waitForCascade(page, IDS.localidade);
+        await setSelectByLabel(page, IDS.localidade, FIXED_VALUES.localidade);
+
+        // "Empresa" (qual contratada, escolhida pela pessoa) — tentamos por último, depois de
+        // todos os outros campos fixos estarem selecionados, caso a lista dependa de mais de
+        // um campo. Não é fatal se não achar a opção: em testes sem login válido essa lista
+        // fica vazia (provavelmente depende da sessão autenticada), então só avisamos e
+        // seguimos em frente em vez de travar o resto do preenchimento.
+        if (ocorrencia.empresa) {
+            await waitForCascade(page, IDS.empresa);
+            await setSelectByLabel(page, IDS.empresa, ocorrencia.empresa);
+        }
+
         console.log("Preencheu todos os Dropdowns fixos.");
-
         console.log("Formulário preenchido com sucesso.");
-
     } catch (error) {
         console.error("Erro ao preencher o formulário de ocorrência:", error);
         // Tira um screenshot para ajudar a depurar o erro
-        await page.screenshot({ path: 'error_screenshot.png' });
-        console.log('Screenshot de erro salvo em error_screenshot.png');
-        throw new Error("Falha no preenchimento do formulário via Playwright.");
+        try {
+            await page.screenshot({ path: "error_screenshot.png" });
+            console.log("Screenshot de erro salvo em error_screenshot.png");
+        } catch (_) {
+            // ignora falha ao tirar screenshot
+        }
+        throw new Error("Falha no preenchimento do formulário via Playwright: " + error.message);
     }
 }
 

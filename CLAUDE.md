@@ -78,6 +78,66 @@ O site real (`sgo.edp.com.br`) responde e carrega a página de login normalmente
 máquina de dev (fora da rede da EDP) — só falha no login em si com credenciais falsas. Ou seja,
 dá pra testar o fluxo de erro/timeout de login sem VPN nem estar na rede da EDP.
 
+## Reescrita completa do preenchimento (2026-07-24)
+
+Depois de corrigir a URL (ver bug abaixo), testei `preencherOcorrenciaEDP` de verdade contra a
+página real e **nenhum campo preenchia** — o mapeamento inteiro (labels + seletores CSS antigos
+em `backend/config.js`) estava obsoleto. A tela "Nova Ocorrência" roda hoje em cima da
+plataforma **OutSystems** (dá pra ver pelas classes `WebPatterns`, `ThemeGrid_*`, `SmartInput`,
+`__VIEWSTATE`, `__OSVSTATE`), com dropdowns customizados via **Select2** (não são mais
+`<select>` visíveis — o `<select>` real fica escondido com classe `select-hide`, e o Select2
+mostra a UI bonita por cima). Reescrevi `backend/config.js` (agora usa `IDS` com os ids reais
+gigantes gerados pelo OutSystems, tipo
+`wtOccurrence_SGSTUITemplate_wt342_block_wtMainContent_wtOccurrence_Description`, em vez de
+texto de label) e `backend/playwright/ocorrenciaEDP.js` inteiro. **Testei campo por campo
+direto no site de produção (sem nunca clicar em salvar/enviar) até bater 100% com a screenshot
+que a dona do projeto mandou do formulário preenchido manualmente.** Descobertas importantes:
+
+- **Não precisa de login pra preencher.** Os campos não ficam bloqueados/readonly pra sessão
+  anônima — só descobri isso depois de testar (`el.disabled`/`el.readOnly` = `false` mesmo sem
+  autenticar). O formulário até tem um toggle "Relato Anônimo", então faz sentido.
+- **Selects escondidos não aceitam Playwright `selectOption()`/clique normal** (falha de
+  "actionability" porque o elemento não é visível). A solução é setar `select.value` direto via
+  `page.evaluate()` e disparar `new Event('change', {bubbles:true})` — é exatamente o que o
+  Select2 escuta pra atualizar a UI visual, e funciona perfeitamente (confirmado visualmente
+  nas screenshots).
+- **Três cascatas em série** (um select só popula as opções reais depois que outro é
+  selecionado, via requisição pro servidor): Segmento → Empresa EDP, Área do observador →
+  Localidade, e Categoria de Tipologia → Tipo de Tipologia. Implementado `waitForCascade()` em
+  `ocorrenciaEDP.js` que compara a lista de opções antes/depois (não basta checar
+  "tem mais de 1 opção", porque alguns desses selects já nascem com uma lista padrão não-vazia
+  antes da cascata real acontecer — Tipo de Tipologia é um exemplo disso).
+- **"Endereço" não existe mais como campo sempre visível.** Só aparece quando o toggle
+  **"Local Externo"** é ligado — por isso `preencherOcorrenciaEDP` liga esse toggle sempre, logo
+  no início, antes de mexer em qualquer outro campo. Sem isso, o texto que a pessoa digita no
+  app não teria pra onde ir (a antiga ideia de "Local da ocorrência" como texto livre não existe
+  mais; virou um dropdown de localidade fixa + esse campo de Endereço condicional).
+- **CPF tem máscara de digitação** (mostra `___.___.___-__`) que só reage a eventos de teclado
+  de verdade. `page.fill()` seta o `value` direto via JS e a máscara não reconhece, fica vazio.
+  Resolvido com `page.type()` (digitação simulada caractere por caractere) — função
+  `setTextTyped()` em `ocorrenciaEDP.js`, usada só pro CPF.
+- **Rótulos de opção mudaram de texto**: "Prj e Construção SP" agora é
+  `-Prj e Construção SP` (hífen na frente, todas as opções dessa lista têm esse padrão) e
+  "12 - Sede São José dos Campos" agora é `12 - Sede São José dos Campos - EDP SP` (sufixo
+  `- EDP SP` a mais). Confirmados batendo com a screenshot da dona do projeto.
+- **Campo "Empresa"** (diferente de "Empresa EDP", id `wtOccurrence_..._wtOccurrence_CompanyId`,
+  obrigatório no site — `MandatoryLabel`) é a contratada específica do observador. Virou **campo
+  novo no app** (`src/index.html` + `app.js`, "Empresa (nome da contratada)", ao lado de CPF) —
+  a pessoa que preenche digita o nome dela mesma, em vez de ser um valor fixo, a pedido da dona
+  do projeto. A lista de opções desse dropdown ficou **vazia em todos os testes sem login
+  válido**, mesmo depois de "Tipo de Empresa"=Contratada e todos os outros campos preenchidos —
+  a hipótese mais provável é que a lista de contratadas disponíveis depende da conta
+  autenticada (a matrícula sabe a qual empresa terceirizada pertence). `ocorrenciaEDP.js` tenta
+  selecionar por último (depois de todas as outras cascatas), casando pelo texto digitado com
+  uma opção real; se não achar, só loga aviso e segue sem travar o resto — **precisa confirmar
+  com login real se a lista aparece e se o texto que a pessoa digita bate com o rótulo exato da
+  opção**, ou se vai precisar virar um dropdown de verdade.
+- **Ainda não existe nenhum clique de "salvar/enviar"** em `preencherOcorrenciaEDP` — a função
+  só preenche os campos e para (sempre foi assim, mesmo antes dessa reescrita). Isso foi
+  proposital nesta sessão: a dona do projeto pediu explicitamente pra nunca completar o envio
+  durante os testes, porque cria uma ocorrência real e irreversível no sistema de segurança da
+  EDP. **Antes de adicionar o clique de submit, perguntar/confirmar com ela.**
+
 ## Histórico de bugs corrigidos (2026-07-23)
 
 - **Crítico**: `backend/config.js` tinha `URL_BASE` errada (`https://sgs.edp.com.br/sgs/Ocorrencia/Informar`

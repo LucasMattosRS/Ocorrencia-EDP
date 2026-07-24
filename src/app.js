@@ -49,7 +49,7 @@ class EDPOcorrenciaApp {
     document.getElementById('btn-voltar')?.addEventListener('click', () => this.voltar());
     document.getElementById('btn-limpar')?.addEventListener('click', () => this.limpar());
 
-    document.querySelectorAll('#descricao, #cpf, #endereco, #acoes-imediatas').forEach(el => {
+    document.querySelectorAll('#descricao, #cpf, #empresa, #endereco, #acoes-imediatas').forEach(el => {
       el.addEventListener('input', () => this.autoSave());
     });
 
@@ -130,6 +130,7 @@ class EDPOcorrenciaApp {
       descricao: document.getElementById('descricao').value.trim(),
       endereco: document.getElementById('endereco').value.trim(),
       cpf: document.getElementById('cpf').value.trim(),
+      empresa: document.getElementById('empresa').value.trim(),
       acoesImediatas: document.getElementById('acoes-imediatas').value.trim(),
       machucado: document.querySelector('input[name="machucado"]:checked')?.value || "",
       tipoEvento: document.getElementById('tipo-evento').value,
@@ -140,7 +141,7 @@ class EDPOcorrenciaApp {
     };
 
     // 2. Validar campos
-    if (!ocorrencia.cpf || !ocorrencia.descricao || !ocorrencia.endereco || !ocorrencia.tipoEvento || !ocorrencia.categoria || !ocorrencia.tipoTipologia) {
+    if (!ocorrencia.cpf || !ocorrencia.empresa || !ocorrencia.descricao || !ocorrencia.endereco || !ocorrencia.tipoEvento || !ocorrencia.categoria || !ocorrencia.tipoTipologia) {
       this.showToast("⚠️ Preencha todos os campos obrigatórios!", "warning");
       return;
     }
@@ -400,6 +401,7 @@ https://sgs.edp.com.br/sgs/Ocorrencia/Informar`;
     const dados = {
       descricao: document.getElementById("descricao").value,
       cpf: document.getElementById("cpf").value,
+      empresa: document.getElementById("empresa").value,
       endereco: document.getElementById("endereco").value,
       acoesImediatas: document.getElementById("acoes-imediatas").value,
       tipoEvento: document.getElementById("tipo-evento").value,
@@ -418,6 +420,7 @@ https://sgs.edp.com.br/sgs/Ocorrencia/Informar`;
       if (!dados) return;
       document.getElementById("descricao").value = dados.descricao || "";
       document.getElementById("cpf").value = dados.cpf || "";
+      document.getElementById("empresa").value = dados.empresa || "";
       document.getElementById("endereco").value = dados.endereco || "";
       document.getElementById("acoes-imediatas").value = dados.acoesImediatas || "";
       document.getElementById("tipo-evento").value = dados.tipoEvento || "";
@@ -442,6 +445,7 @@ https://sgs.edp.com.br/sgs/Ocorrencia/Informar`;
       descricao: "descricao",
       endereco: "endereco",
       cpf: "cpf",
+      empresa: "empresa",
       acoesImediatas: "acoes-imediatas",
       tipoEvento: "tipo-evento",
       categoria: "categoria-tipologia",

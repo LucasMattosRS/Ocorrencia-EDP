@@ -84,25 +84,26 @@ router.post("/", async (req, res) => {
 
         // --- PASSO 1: Salvar a ocorrência no banco com status 'iniciado' ---
         const queryText = `
-            INSERT INTO ocorrencias(matricula_autor, descricao, endereco, cpf, acoes_imediatas, machucado, tipo_evento, categoria, tipo_tipologia, latitude, longitude, status)
-            VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'iniciado')
+            INSERT INTO ocorrencias(matricula_autor, descricao, endereco, cpf, empresa, acoes_imediatas, machucado, tipo_evento, categoria, tipo_tipologia, latitude, longitude, status)
+            VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'iniciado')
             RETURNING id;
         `;
-        const { 
-            descricao, 
-            endereco, 
-            cpf, 
-            acoesImediatas, 
-            machucado, 
-            tipoEvento, 
-            categoria, 
-            tipoTipologia, 
-            latitude, 
-            longitude 
+        const {
+            descricao,
+            endereco,
+            cpf,
+            empresa,
+            acoesImediatas,
+            machucado,
+            tipoEvento,
+            categoria,
+            tipoTipologia,
+            latitude,
+            longitude
         } = ocorrencia;
 
         const queryValues = [
-            matricula, descricao, endereco, cpf, acoesImediatas, machucado, 
+            matricula, descricao, endereco, cpf, empresa, acoesImediatas, machucado,
             tipoEvento, categoria, tipoTipologia, latitude, longitude
         ];
         const dbResult = await db.query(queryText, queryValues);

@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS ocorrencias (
     descricao TEXT NOT NULL,
     endereco TEXT,
     cpf VARCHAR(20),
+    empresa VARCHAR(255),
     acoes_imediatas TEXT,
     machucado VARCHAR(10),
     tipo_evento VARCHAR(100),
@@ -19,6 +20,10 @@ CREATE TABLE IF NOT EXISTS ocorrencias (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Garante a coluna 'empresa' em bancos que já existiam antes dela ser adicionada
+-- (CREATE TABLE IF NOT EXISTS acima não altera uma tabela que já existe).
+ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS empresa VARCHAR(255);
 
 -- Função de gatilho (trigger function) para atualizar o campo 'updated_at'.
 -- Esta função será executada automaticamente sempre que uma linha for atualizada.
